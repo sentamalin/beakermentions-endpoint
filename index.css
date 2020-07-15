@@ -1,0 +1,198 @@
+/* Beakermentions Endpoint - index.css                                            *
+ * © 2020 [Don Geronimo][1]                                                       *
+ *                                                                                *
+ * To the extent possible under law, [Don Geronimo][1] has waived all copyright   *
+ * and related or neighboring rights to [Beakermentions Endpoint][2] by           *
+ * publishing it under the [CC0 1.0 Universal Public Domain Dedication][3]. This  *
+ * work is published from the United States.                                      *
+ *                                                                                *
+ * [1]: hyper://9fa076bdc2a83f6d0d32ec010a71113b0d25eccf300a5eaedf72cf3326546c9a/ *
+ * [2]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/ *
+ * [3]: /LICENSE.md                                                               */
+
+body {
+  font-family: sans-serif;
+  background-color: #fafafa;
+}
+
+main {
+  max-width: 40rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main > h1 {
+  font-weight: normal;
+  font-family: monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5rem;
+}
+
+main > h1::before {
+  content: "📡";
+}
+
+a, abbr {
+  text-decoration: none;
+}
+
+.lovenote {
+  font-size: x-small;
+  color: #999;
+}
+
+.lovenote abbr {
+  color: #f99;
+}
+
+.send form p {
+  display: flex;
+}
+
+.send form p:first-child {
+  margin-bottom: 0;
+}
+
+.send form p:nth-child(2) {
+  margin: 0.5rem 0;
+}
+
+.send form p:last-child {
+  flex-direction: row-reverse;
+  margin-top: 0;
+}
+
+.send form label {
+  display: none;
+}
+
+.send form input {
+  width: 100%;
+  border: 1px solid #999;
+  border-radius: 2rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.send form button {
+  font-weight: bold;
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  background-color: #66f;
+  background-image: linear-gradient(to bottom, #99f, #66f);
+  border: 1px solid #33f;
+  color: #fff;
+}
+
+.send form button::before {
+  content: "📡 ";
+}
+
+.response-output {
+  padding: 1rem;
+  background-color: #eee;
+  border-radius: 5px;
+  font-size: smaller;
+}
+
+.response-type {
+  font-size: larger;
+  font-weight: bold;
+  margin-top: 0;
+  text-transform: capitalize;
+}
+
+.response-output ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.response-output li:first-child, .response-output li:nth-child(2) {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.configure {
+  margin-top: -2.75rem;
+}
+
+.configure summary {
+  font-weight: bold;
+  padding: 0.42rem 0.45rem;
+  border-radius: 5px;
+  background-color: #dedede;
+  background-image: linear-gradient(to bottom, #fff, #dedede);
+  border: 1px solid #ababab;
+  width: auto;
+  display: inline-block;
+  font-size: smaller;
+  list-style-type: none;
+}
+
+.configure summary::before {
+  content: "⚙️ ";
+}
+
+.configure summary::-webkit-details-marker {
+  display: none;
+}
+
+#configure-endpoint textarea, #configure-endpoint label, #configure-endpoint input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+#configure-endpoint input {
+  border-radius: 5px;
+  border: 1px solid #999;
+  padding: 0.25rem 0.25rem;
+}
+
+#configure-endpoint label {
+  font-weight: bold;
+  font-size: smaller;
+  margin-bottom: 0.25rem;
+}
+
+#configure-endpoint textarea {
+  height: 20em;
+  border: 1px solid #999;
+  border-radius: 5px;
+  padding: 0.25rem 0.25rem;
+}
+
+#configure-endpoint p:nth-child(3) {
+  margin-bottom: 0.5rem;
+}
+
+#configure-endpoint p:last-child {
+  display: flex;
+  flex-direction: row-reverse;
+  margin-top: 0;
+}
+
+#configure-endpoint button {
+  font-weight: bold;
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  background-color: #66f;
+  background-image: linear-gradient(to bottom, #99f, #66f);
+  border: 1px solid #33f;
+  color: #fff;
+}
+
+#configure-endpoint button[disabled] {
+  background-color: #666;
+  background-image: linear-gradient(to bottom, #999, #666);
+  border: 1px solid #333;
+}
+
+#configure-endpoint button::before {
+  content: "💾 ";
+}

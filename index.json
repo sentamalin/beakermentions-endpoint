@@ -1,0 +1,4 @@
+{
+  "title": "Beakermentions Endpoint",
+  "description": "An endpoint implementation of the W3C Webmention recommendation."
+}
