@@ -33,7 +33,8 @@ As an alternative to step 5, Bob may interactively send the webmention (instead 
 Now, when an application opens Alice's file, they may notice the `@webmention` key in the metadata. They may get all the stored mentions from the Beakermentions Endpoint by reading `hyper://alice-beakermentions/mentions/hyper/alice/microblog/a-good-day.md.json` and display whichever mentions they want to present by processing each URL.
 
 ## License
-© 2020 [Don Geronimo][7]. To the extent possible under law, Don Geronimo has waived all copyright and related or neighboring rights to Beakermentions Endpoint by publishing it under the [CC0 1.0 Universal Public Domain Dedication][8]. This work is published from the United States.
+
+Written in 2020 by [Don Geronimo][7]. To the extent possible under law, Don Geronimo has waived all copyright and related or neighboring rights to Beakermentions Endpoint by publishing it under the [CC0 1.0 Universal Public Domain Dedication][8]. This work is published from the United States.
 
 Made with ❤️ and JavaScript. Please freely share and remix.
 
