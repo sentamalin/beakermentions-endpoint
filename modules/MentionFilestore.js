@@ -8,7 +8,7 @@
 // 
 // [1]: hyper://9fa076bdc2a83f6d0d32ec010a71113b0d25eccf300a5eaedf72cf3326546c9a/
 // [2]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/
-// [3]: /LICENSE.md
+// [3]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/LICENSE.md
 
 export class MentionFilestore {
   #thisHyperdrive;

@@ -37,11 +37,11 @@ Now, when an application opens Alice's file, they may notice the @webmention key
 
 Made with ❤️ and JavaScript. Please freely share and remix.
 
-[1]: /
+[1]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/
 [2]: https://www.w3.org/
 [3]: https://www.w3.org/TR/webmention/
 [4]: https://beakerbrowser.com/
 [5]: https://docs.beakerbrowser.com/apis/beaker.hyperdrive/
 [6]: https://docs.beakerbrowser.com/apis/beaker.peersockets/
 [7]: hyper://9fa076bdc2a83f6d0d32ec010a71113b0d25eccf300a5eaedf72cf3326546c9a/
-[8]: /LICENSE.md
+[8]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/LICENSE.md
