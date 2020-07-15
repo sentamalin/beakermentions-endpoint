@@ -30,7 +30,7 @@ Do note that this is only an endpoint implementation; an endpoint only stores an
 
 As an alternative to step 5, Bob may interactively send the webmention (instead of their application) by visiting Alice's Beakermention Endpoint, entering their response as the source and Alice's file as the target, and pressing send.
 
-Now, when an application opens Alice's file, they may notice the `@webmention` key in the metadata. They may get all the stored mentions from the Beakermentions Endpoint by reading `hyper://alice-beakermentions/mentions/hyper/alice/microblog/a-good-day.md.json` and display whichever mentions they want to present by processing each URL.`
+Now, when an application opens Alice's file, they may notice the `@webmention` key in the metadata. They may get all the stored mentions from the Beakermentions Endpoint by reading `hyper://alice-beakermentions/mentions/hyper/alice/microblog/a-good-day.md.json` and display whichever mentions they want to present by processing each URL.
 
 ## License
 © 2020 [Don Geronimo][7]. To the extent possible under law, Don Geronimo has waived all copyright and related or neighboring rights to Beakermentions Endpoint by publishing it under the [CC0 1.0 Universal Public Domain Dedication][8]. This work is published from the United States.
