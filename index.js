@@ -14,14 +14,14 @@ import { BeakermentionsEndpoint } from "./modules/BeakermentionsEndpoint.js";
 
 var Endpoint;
 
-function main() {
+async function main() {
   // Initialize the environment
   Endpoint = new BeakermentionsEndpoint(`${location.protocol}//${location.host}${location.pathname}`);
   let params = new URLSearchParams(document.location.search.substring(1));
   console.debug("index.main: Grabbed variables from the environment");
 
   // Initialize the endpoint and its event handlers
-  Endpoint.init();
+  await Endpoint.init();
   if (Endpoint.hyperdriveWritable) {
     enableConfigurationSaving();
   }
@@ -42,7 +42,9 @@ function main() {
   let sendMode = params.get("source") && params.get("target");
   if (sendMode) {
     Endpoint.source = params.get("source");
+    document.getElementById("send-webmention-source").value = Endpoint.source;
     Endpoint.target = params.get("target");
+    document.getElementById("send-webmention-target").value = Endpoint.target;
     if (params.get("done")) { Endpoint.done = params.get("done"); }
     if (Endpoint.hyperdriveWritable) {
       console.debug("index.main: Try directly sending a webmention.");
