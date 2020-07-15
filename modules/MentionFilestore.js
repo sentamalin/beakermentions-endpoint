@@ -12,6 +12,7 @@
 
 // Define a MentionFilestore class
 export class MentionFilestore {
+  #thisHyperdrive;
   #path;
   #file;
 
@@ -27,8 +28,11 @@ export class MentionFilestore {
   async init() {
     let file = [];
     try {
-      let fileString = await beaker.hyperdrive.readFile(this.#path, "utf8");
+      this.#thisHyperdrive = beaker.hyperdrive.drive("/");
+      let fileString = await this.#thisHyperdrive.readFile(this.#path, "utf8");
       file = JSON.parse(fileString);
+    } catch (error) {
+      console.error("WebmentionFilestore.init:", error);
     } finally {
       this.#file = file;
     }
@@ -48,19 +52,27 @@ export class MentionFilestore {
 
   // Add a new mention to the store if it's not already in there
   async addMention(path) {
-    let exists = this.mentionExists(path);
-    if (exists === -1) {
-      this.#file.push(path);
-      await this.#write();
+    try {
+      let exists = this.mentionExists(path);
+      if (exists === -1) {
+        this.#file.push(path);
+        await this.#write();
+      }
+    } catch (error) {
+      console.error("WebmentionFilestore.addMention:", error);
     }
   }
 
   // Delete a mention from the store
   async deleteMention(path) {
-    let exists = this.mentionExists(path);
-    if (exists > -1) {
-      this.#file.splice(exists, 1);
-      await this.#write();
+    try {
+      let exists = this.mentionExists(path);
+      if (exists > -1) {
+        this.#file.splice(exists, 1);
+        await this.#write();
+      }
+    } catch (error) {
+      console.error("WebmentionFilestore.deleteMention:", error);
     }
   }
 
@@ -68,7 +80,11 @@ export class MentionFilestore {
 
   // (Over)write the file
   async #write() {
-    let fileString = JSON.stringify(this.#file);
-    await beaker.hyperdrive.writeFile(this.#path, fileString, "utf8");
+    try {
+      let fileString = JSON.stringify(this.#file);
+      await this.#thisHyperdrive.writeFile(this.#path, fileString, "utf8");
+    } catch (error) {
+      console.error("WebmentionFilestore.#write:", error);
+    }
   }
 }

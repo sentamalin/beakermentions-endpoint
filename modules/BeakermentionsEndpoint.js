@@ -15,6 +15,7 @@ import { sendJSONMessage, receiveJSONMessage } from "./sendJSON.js";
 import { createWebmention } from "./createWebmention.js";
 
 export class BeakermentionsEndpoint {
+  #thisHyperdrive = beaker.hyperdrive.drive("/");
   #configurationFile = "/configuration.json";
   #peerEvents = beaker.peersockets.watch();
   #topic = beaker.peersockets.join("webmention");
@@ -57,8 +58,6 @@ export class BeakermentionsEndpoint {
 
   #hyperdriveWritable = false;
   get hyperdriveWritable() { return this.#hyperdriveWritable; }
-  set hyperdriveWritable(hyperdriveWritable)
-    { this.#hyperdriveWritable = hyperdriveWritable; }
 
   #source;
   get source() { return this.#source; }
@@ -79,22 +78,31 @@ export class BeakermentionsEndpoint {
   }
 
   async init() {
-    this.hyperdriveWritable = await beaker.hyperdrive.getInfo("/");
-    await this.#loadConfigurationFile();
-    if (this.hyperdriveWritable) this.#setupEndpoint();
-    else this.#setupVisitor();
+    try {
+      let hyperdriveInfo = await this.#thisHyperdrive.getInfo();
+      this.#hyperdriveWritable = hyperdriveInfo.writable;
+      await this.#loadConfigurationFile();
+      if (this.hyperdriveWritable) { this.#setupEndpoint(); }
+      else { this.#setupVisitor(); }
+    } catch (error) {
+      console.error("BeakermentionsEndpoint.init:", error);
+    }
   }
 
   /********** Public Methods **********/
 
   async sendWebmention() {
-    if (this.#checkMessageURLs(this.source, this.target)) {
-      let message = sendMessage(this.source, this.target);
-      let response = await createWebmention(message, this.endpoint);
-      this.response = response;
-    } else {
-      this.response = failMessage(this.source, this.target,
-        "One of the URLs are blocked.");
+    try {
+      if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
+        let message = sendMessage(this.source, this.target);
+        let response = await createWebmention(message, this.endpoint);
+        this.response = response;
+      } else {
+        this.response = failMessage(this.source, this.target,
+          "One of the URLs are blocked.");
+      }
+    } catch (error) {
+      console.error("BeakermentionsEndpoint.sendWebmention:", error);
     }
   }
 
@@ -104,22 +112,26 @@ export class BeakermentionsEndpoint {
       "whitelist" : this.whitelist
     });
     try {
-      await beaker.hyperdrive.writeFile(this.#configurationFile, file);
-    } catch {}
+      await this.#thisHyperdrive(this.#configurationFile, file);
+    } catch (error) {
+      console.error("BeakermentionsEndpoint.sendWebmention", error);
+    }
   }
 
   /********** Private Methods **********/
 
   async #loadConfigurationFile() {
     try {
-      let fileString = await beaker.hyperdrive.readFile(this.#configurationFile);
+      let fileString = await this.#thisHyperdrive.readFile(this.#configurationFile);
       let file = JSON.parse(fileString);
       if (file === null) throw "errorConfigurationFile";
       else {
         this.blacklist = file.blacklist;
         this.whitelist = file.whitelist;
       }
-    } catch {}
+    } catch (error) {
+      console.error("BeakermentionsEndpoint.#loadConfigurationFile:", error);
+    }
   }
 
   #setupEndpoint() {
@@ -142,7 +154,7 @@ export class BeakermentionsEndpoint {
       let message = receiveJSONMessage(e);
       switch(message.type) {
         case "endpoint":
-          if (this.#checkMessageURLs(this.source, this.target)) {
+          if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
             let reply = sendMessage(this.source, this.target);
             sendJSONMessage(reply, e.peerId);
           } else {
@@ -160,7 +172,7 @@ export class BeakermentionsEndpoint {
     });
   }
 
-  #checkMessageURLs(source, target) {
+  #checkMessageURLsAgainstConfiguration(source, target) {
     let passesBlacklist = true;
     let passesWhitelist = false;
 

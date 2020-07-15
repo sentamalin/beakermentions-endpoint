@@ -19,119 +19,166 @@ export class WebmentionValidator {
   /********** Public Methods **********/
 
   async checkSource(source, target) {
+    let output = false;
     let sourceRegex = RegExp(target);
+    let sourceSplit = source.split("/");
+    let sourceHost = `${sourceSplit[0]}//${sourceSplit[2]}/`;
+    for (let i = 0; i > 3; i++) { sourceSplit.shift(); }
+    let sourcePath = `/${sourceSplit.join("/")}`;
 
     // First, try to find the target reference through Beaker
     try {
-      let sourceStat = await beaker.hyperdrive.stat(source);
-      if (sourceStat.isFile() === true) {
+      let sourceHyperdrive = beaker.hyperdrive.drive(sourceHost);
+      let sourceStat = await sourceHyperdrive.stat(sourcePath);
+      if (sourceStat.isFile()) {
         // Check if the source references the target in metadata
+        console.debug("WebmentionValidator.checkSource: Checking metadata for 'target.'");
         let metadata = JSON.stringify(sourceStat.metadata);
-        if (sourceRegex.test(metadata)) return true;
+        if (sourceRegex.test(metadata)) { output = true; }
 
         // Check if the source references the target in its HTML
-        let sourceFile = await beaker.hyperdrive.readFile(source, "utf8");
-        if (this.#htmlRegex.test(source))
-          if (this.#checkTargetInSourceHTML(sourceFile, target))
-            return true;
+        if (!output) {
+          console.debug("WebmentionValidator.checkSource: If HTML, checking @href/@src for 'target.'");
+          let sourceFile = await sourceHyperdrive.readFile(sourcePath, "utf8");
+          if (this.#htmlRegex.test(source)) {
+            if (this.#checkTargetInSourceHTML(sourceFile, target)) {
+              output = true;
+            }
+          }
 
-        // Check if the source references the target in its contents
-        if (regex.test(sourceFile)) return true;
-        else return false;
+          // Check if the source references the target in its contents
+          if (!output) {
+            console.debug("WebmentionValidator.checkSource: Checking content for 'target.'");
+            if (regex.test(sourceFile)) { output = true; }
+          }
+        }
       }
     }
     
     // If not through Beaker, use standard Fetch API requests
     catch {
       try {
+        console.debug("WebmentionValidator.checkSource: Using Hyperdrive API failed; using Fetch API.");
         let response = await fetch(source);
         if (response.ok) {
           // Check if the source references the target in its HTML
+          console.debug("WebmentionValidator.checkSource: If HTML, checking @href/@src for 'target.'");
           let sourceFile = await response.text();
-          if (this.#htmlRegex.test(source))
-            if (this.#checkTargetInSourceHTML(sourceFile, target))
-              return true;
+          if (this.#htmlRegex.test(source)) {
+            if (this.#checkTargetInSourceHTML(sourceFile, target)) {
+              output = true;
+            }
+          }
 
           // Check if the source references the target in its content
-          if (sourceRegex.test(sourceFile)) return true;
-          else return false;
+          if (!output) {
+            console.debug("WebmentionValidator.checkSource: Checking content for 'target.'");
+            if (sourceRegex.test(sourceFile)) { output = true; }
+          }
         }
-      } catch { return false; }
+      } catch (error) {
+        console.error("WebmentionValidator.checkSource:", error);
+      }
+    } finally {
+      if (output) {
+        console.debug("WebmentionValidator.checkSource: 'target' found in 'source.'");
+      }
+      return output;
     }
   }
 
   async checkTarget(target, endpoint) {
+    let output = false;
+    let targetSplit = target.split("/");
+    let targetHost = `${targetSplit[0]}//${targetSplit[2]}/`;
+    for (let i = 0; i > 3; i++) { targetSplit.shift(); }
+    let targetPath = `/${targetSplit.join("/")}`;
     // First, try to find the webmention endpoint through Beaker
     try {
-      let targetStat = await beaker.hyperdrive.stat(target);
+      let targetHyperdrive = beaker.hyperdrive.drive(targetHost);
+      let targetStat = await targetHyperdrive.stat(targetPath);
       let webmentionURL = this.#getAbsoluteURL(target, targetStat.metadata.webmention);
       if (targetStat.isFile() === true) {
         // Check if the metadata mentions this endpoint as @webmention
-        if (webmentionURL === endpoint) return true;
+        console.debug("WebmentionValidator.checkTarget: Checking metadata for @webmention.");
+        if (webmentionURL === endpoint) { output = true; }
 
         // Check if any <a> or <link> tags mention the endpoint with @rel="webmention"
-        let targetFile = await beaker.hyperdrive.readFile(target, "utf8");
-        if (this.#htmlRegex.test(target))
-          if (this.#checkEndpointInTargetHTML(target, targetFile, endpoint))
-            return true;
-        else return false;
+        if (!output) {
+          console.debug("WebmentionValidator.checkTarget: Checking HTML for @rel=webmention.");
+          let targetFile = await targetHyperdrive.readFile(target, "utf8");
+          if (this.#htmlRegex.test(target)) {
+            if (this.#checkEndpointInTargetHTML(target, targetFile, endpoint)) {
+              output = true;
+            }
+          }
+        }
       }
     }
 
     // If not through Beaker, use HTTP Link Headers and Fetch API Requests
     catch {
       try {
+        console.debug("WebmentionValidator.checkTarget: Using Hyperdrive API failed; using Fetch API.");
         let response = await fetch(target);
         if (response.ok) {
           // First, check the HTTP Link Headers
-          try {
-            let linkHeadersString = response.get("link");
-            if (linkHeadersString === null) throw "targetNoHeader";
+          console.debug("WebmentionValidator.checkTarget: Checking HTTP Request for Link headers.");
+          let linkHeadersString = response.get("link");
+          if (!(linkHeadersString === null)) {
             let found = false;
             let linkHeaders = linkHeadersString.split(",");
             linkHeaders.forEach(element => {
               if (this.#relRegex.test(element)) {
                 let url = element.match(this.#endpointRegex);
                 url = this.#getAbsoluteURL(target, url.slice(1, url.length - 1));
-                if (url === endpoint) found = true;
+                if (url === endpoint) { found = true; }
               }
             });
-            if (found) return true;
-            else throw "targetNoHeader";
-          }
-
-          // Then, check using Fetch API
-          catch {
+            if (found) { output = true; }
+          } else {
+            console.debug("WebmentionValidator.checkTarget: Checking HTML for @rel=webmention.");
             let targetFile = await response.text();
-            if (this.#htmlRegex.test(target))
-              if (this.#checkEndpointInTargetHTML(target, targetFile, endpoint))
-                return true;
-            else return false;
+            if (this.#htmlRegex.test(target)) {
+              if (this.#checkEndpointInTargetHTML(target, targetFile, endpoint)) {
+                output = true;
+              }
+            }
           }
         }
-      } catch { return false; }
+      } catch (error) {
+        console.error("WebmentionValidator: .checkTarget:", error);
+      } finally {
+        if (output) {
+          console.debug("WebmentionValidator.checkSource: 'endpoint' found in 'target.'");
+        }
+        return output;
+      }
     }
   }
 
   /********** Private Methods **********/
 
   #checkTargetInSourceHTML(sourceFile, target) {
+    let output = true;
     let sourceDom = this.#domParser.parseFromString(sourceFile, "text/html");
     let hrefQuery = `*[href="${target}"]`;
     let srcQuery = `*[src="${target}"]`;
     let hrefInDom = sourceDom.querySelector(hrefQuery);
     let srcInDom = sourceDom.querySelector(srcQuery);
-    if ((hrefInDom === null) && (srcInDom === null)) return false;
-    else return true;
+    if ((hrefInDom === null) && (srcInDom === null)) { output = false; }
+    return output;
   }
 
   #checkEndpointInTargetHTML(target, targetFile, endpoint) {
+    let output = false;
     let targetDom = this.#domParser.parseFromString(targetFile, "text/html");
     let relWebmention = targetDom.querySelector("*[rel='webmention']");
-    if (relWebmention === null) return false;
-    let relWebmentionURL = relWebmention.getAttribute("href");
-    if (this.#getAbsoluteURL(target, relWebmentionURL) === endpoint) return true;
-    else return false;
+    if (!(relWebmention === null)) {
+      let relWebmentionURL = relWebmention.getAttribute("href");
+      if (this.#getAbsoluteURL(target, relWebmentionURL) === endpoint) { output = true; }
+    }
+    return output;
   }
 
   #getAbsoluteURL(baseURL, relURL) {

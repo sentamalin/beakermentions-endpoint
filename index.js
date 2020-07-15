@@ -15,15 +15,10 @@ import { BeakermentionsEndpoint } from "./modules/BeakermentionsEndpoint.js";
 var Endpoint;
 
 function main() {
-  let url = `${location.protocol}//${location.host}${location.pathname}`;
-  Endpoint = new BeakermentionsEndpoint(url);
+  // Initialize the environment
+  Endpoint = new BeakermentionsEndpoint(`${location.protocol}//${location.host}${location.pathname}`);
   let params = new URLSearchParams(document.location.search.substring(1));
-  let sendMode = params.get("source") && params.get("target");
-  if (sendMode) {
-    Endpoint.source = params.get("source");
-    Endpoint.target = params.get("target");
-    if (params.get("done")) Endpoint.done = params.get("done");
-  }
+  console.debug("index.main: Grabbed variables from the environment");
 
   // Initialize the endpoint and its event handlers
   Endpoint.init();
@@ -39,6 +34,12 @@ function main() {
   Endpoint.onWhitelistLoaded(whitelist => {
     document.getElementById("whitelist").value = whitelist.join("\n");
   });
+  let sendMode = params.get("source") && params.get("target");
+  if (sendMode) {
+    Endpoint.source = params.get("source");
+    Endpoint.target = params.get("target");
+    if (params.get("done")) Endpoint.done = params.get("done");
+  }
 }
 
 // Enable Configuration Saving
@@ -47,6 +48,7 @@ function enableConfigurationSaving() {
   document.getElementById("whitelist").removeAttribute("disabled");
   document.getElementById("save-configuration").removeAttribute("disabled");
   document.getElementById("save-configuration").addEventListener("click", Endpoint.saveConfigurationFile);
+  console.debug("index.enableConfigurationSaving: Enabled configuration saving.");
 }
 
 // Update the response on the HTML
@@ -65,6 +67,7 @@ function updatePageResponse(message) {
   clone.querySelector(".response-status").textContent = message.status;
   response.appendChild(clone);
   if (Endpoint.done) location.href = Endpoint.done;
+  console.debug("index.updatePageResponse: Displayed response.");
 }
 
 main();
