@@ -1,12 +1,12 @@
 # 📡 Beakermentions Endpoint
 
-[Beakermentions Endpoint][1] is an endpoint implementation of the [W3C][2] [Webmention][3] recommendation for [Beaker Browser][4] users. Webmentions are a simple way to notify any URL when you mention it from another URL. This implementation utilizes Beaker Browser's [`hyperdrive`][5] and [peersockets][6] API. Deviations exist from the official recommendation due to the unique environment Beaker Browser provides:
+[Beakermentions Endpoint][1] is an endpoint implementation of the [W3C][2] [Webmention][3] recommendation for [Beaker Browser][4] users. Webmentions are a simple way to notify any URL when you mention it from another URL. This implementation utilizes Beaker Browser's [`hyperdrive`][5] and [`peersockets`][6] API. Deviations exist from the official recommendation due to the unique environment Beaker Browser provides:
 
 * The `source` may reference the `target` URL of the Webmention through the file's metadata keys (like `@inReplyTo`, `@likeOf`, `@rsvpTo`, etc.) in addition to the file's content.
 
 * The sender may look for a metadata key `@webmention` in the `target`'s URL to discover the `target`'s Beakermentions Endpoint in addition to the sender looking for an HTTP link header, a `<link>` element, or an `<a>` element with a `@rel` value of "webmention."
 
-* Communication between the users and the Beakermentions Endpoint are done through `beaker.peersockets` instead of HTTP POST.
+* Communication between the users and the Beakermentions Endpoint are done through [Location][9] search strings and `beaker.peersockets` instead of HTTP POST.
 
 Mentions are not limited to HTML; any file can mention any other file using metadata key-value pairs.
 
@@ -45,3 +45,4 @@ Made with ❤️ and JavaScript. Please freely share and remix.
 [6]: https://docs.beakerbrowser.com/apis/beaker.peersockets/
 [7]: hyper://9fa076bdc2a83f6d0d32ec010a71113b0d25eccf300a5eaedf72cf3326546c9a/
 [8]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/LICENSE.md
+[9]: https://developer.mozilla.org/en-US/docs/Web/API/Location/search

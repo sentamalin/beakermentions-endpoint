@@ -60,7 +60,7 @@
         <ul>
           <li>The <code>source</code> may reference the <code>target</code> URL of the Webmention through the file's metadata keys (like <code>@inReplyTo</code>, <code>@likeOf</code>, <code>@rsvpTo</code>, <abbr title="Et Cetera">etc.</abbr>) in addition to the file's content.</li>
           <li>The sender may look for a metadata key <code>@webmention</code> in the <code>target</code>'s URL to discover the <code>target</code>'s Beakermentions Endpoint in addition to the sender looking for an <abbr title="HyperText Transfer Protocol">HTTP</abbr> link header, a <code>&lt;link&gt;</code> element, or an <code>&lt;a&gt;</code> element with a <code>@rel</code> value of "webmention."</li>
-          <li>Communication between the users and the Beakermentions Endpoint are done through <code>beaker.peersockets</code> instead of <abbr title="HyperText Transfer Protocol">HTTP</abbr> POST.</li>
+          <li>Communication between the users and the Beakermentions Endpoint are done through <a href="https://developer.mozilla.org/en-US/docs/Web/API/Location/search">Location</a> search strings and <code>beaker.peersockets</code> instead of <abbr title="HyperText Transfer Protocol">HTTP</abbr> POST.</li>
         </ul>
         <p>Mentions are not limited to <abbr title="HyperText Markup Language">HTML</abbr>; any file can mention any other file using metadata key-value pairs.</p>
         <p>Do note that this is only an endpoint implementation; an endpoint only stores and provides the <code>source</code> URLs that mention a particular <code>target</code> URL. Any rendering of mentions (including which mentions to render) is done by an application itself after retrieving a <code>target</code>'s <code>source</code>s.</p>
