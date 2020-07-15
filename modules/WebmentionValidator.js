@@ -23,8 +23,15 @@ export class WebmentionValidator {
     let sourceRegex = RegExp(target);
     let sourceSplit = source.split("/");
     let sourceHost = `${sourceSplit[0]}//${sourceSplit[2]}/`;
-    for (let i = 0; i > 3; i++) { sourceSplit.shift(); }
+    for (let i = 0; i < 3; i++) { sourceSplit.shift(); }
     let sourcePath = `/${sourceSplit.join("/")}`;
+    let sourceParameters = {
+      "source" : source,
+      "target" : target,
+      "sourceHost" : sourceHost,
+      "sourcePath" : sourcePath
+    };
+    console.debug("WebmentionValidator.checkSource: Variables -", sourceParameters);
 
     // First, try to find the target reference through Beaker
     try {
@@ -53,10 +60,9 @@ export class WebmentionValidator {
           }
         }
       }
-    }
     
     // If not through Beaker, use standard Fetch API requests
-    catch {
+    } catch {
       try {
         console.debug("WebmentionValidator.checkSource: Using Hyperdrive API failed; using Fetch API.");
         let response = await fetch(source);
@@ -91,8 +97,15 @@ export class WebmentionValidator {
     let output = false;
     let targetSplit = target.split("/");
     let targetHost = `${targetSplit[0]}//${targetSplit[2]}/`;
-    for (let i = 0; i > 3; i++) { targetSplit.shift(); }
+    for (let i = 0; i < 3; i++) { targetSplit.shift(); }
     let targetPath = `/${targetSplit.join("/")}`;
+    let targetParameters = {
+      "target" : target,
+      "endpoint" : endpoint,
+      "targetHost" : targetHost,
+      "sourcePath" : targetPath
+    }
+    console.debug("WebmentionValidator.Target: Variables -", targetParameters);
     // First, try to find the webmention endpoint through Beaker
     try {
       let targetHyperdrive = beaker.hyperdrive.drive(targetHost);
