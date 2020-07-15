@@ -43,7 +43,6 @@ export class WebmentionValidator {
         // Check if the source references the target in its HTML
         if (!output) {
           let sourceFile = await sourceHyperdrive.readFile(sourcePath, "utf8");
-          console.debug("WebmentionValidator.checkSource: Read file -", sourceFile);
           if (this.#htmlRegex.test(source)) {
             console.debug("WebmentionValidator.checkSource: Is HTML; checking @href/@src for 'target.'");
             if (this.#checkTargetInSourceHTML(sourceFile, target)) {
@@ -102,21 +101,27 @@ export class WebmentionValidator {
     let targetHost = `${targetSplit[0]}//${targetSplit[2]}/`;
     for (let i = 0; i < 3; i++) { targetSplit.shift(); }
     let targetPath = `/${targetSplit.join("/")}`;
+
+    // First, try to find @ebmention in Beaker
     try {
       let targetHyperdrive = beaker.hyperdrive.drive(targetHost);
       let targetStat = await targetHyperdrive.stat(targetPath);
-      let webmentionURL = this.#getAbsoluteURL(target, targetStat.metadata.webmention);
-      if (targetStat.isFile() === true) {
+      if (targetStat.isFile()) {
         // Check if the metadata mentions this endpoint as @webmention
-        console.debug("WebmentionValidator.checkTarget: Checking metadata for @webmention.");
-        if (webmentionURL === endpoint) {
-          console.debug("WebmentionValidator.checkTarget: @webmention found in metadata.");
-          output = true;
+        if (targetStat.metadata) {
+          console.debug("WebmentionValidator.checkTarget: Checking metadata for @webmention.");
+          if (targetStat.metadata.webmention) {
+            let webmentionURL = this.#getAbsoluteURL(target, targetStat.metadata.webmention);
+            if (webmentionURL === endpoint) {
+              console.debug("WebmentionValidator.checkTarget: @webmention found in metadata.");
+              output = true;
+            }
+          }
         }
 
         // Check if any <a> or <link> tags mention the endpoint with @rel="webmention"
         if (!output) {
-          let targetFile = await targetHyperdrive.readFile(target, "utf8");
+          let targetFile = await targetHyperdrive.readFile(targetPath, "utf8");
           if (this.#htmlRegex.test(target)) {
             console.debug("WebmentionValidator.checkTarget: Is HTML; checking for @rel=webmention.");
             if (this.#checkEndpointInTargetHTML(target, targetFile, endpoint)) {
@@ -209,12 +214,6 @@ export class WebmentionValidator {
       }
       output = baseSplit.join("/");
     }
-    let outputObject = {
-      "baseURL" : baseURL,
-      "relURL" : relURL,
-      "output" : output
-    };
-    console.debug("WebmentionValidator.#getAbsoluteURL: Parameters and output -", outputObject);
     return output;
   }
 }
