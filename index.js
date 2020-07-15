@@ -25,20 +25,29 @@ function main() {
   if (Endpoint.hyperdriveWritable) {
     enableConfigurationSaving();
   }
+  console.debug("index.main: Endpoint is writable; enabled configuration saving.")
   Endpoint.onResponseSet(response => {
     updatePageResponse(response);
   });
+  console.debug("index.main: Added Endpoint.onResponseSet event handler.");
   Endpoint.onBlacklistLoaded(blacklist => {
     document.getElementById("blacklist").value = blacklist.join("\n");
   });
+  console.debug("index.main: Added Endpoint.onBlacklistLoaded event handler.");
   Endpoint.onWhitelistLoaded(whitelist => {
     document.getElementById("whitelist").value = whitelist.join("\n");
   });
+  console.debug("index.main: Added Endpoint.onWhitelistLoaded event handler.");
+  console.debug("index.main: Endpoint is ready.");
   let sendMode = params.get("source") && params.get("target");
   if (sendMode) {
     Endpoint.source = params.get("source");
     Endpoint.target = params.get("target");
-    if (params.get("done")) Endpoint.done = params.get("done");
+    if (params.get("done")) { Endpoint.done = params.get("done"); }
+    if (Endpoint.hyperdriveWritable) {
+      console.debug("index.main: Try directly sending a webmention.");
+      Endpoint.sendWebmention();
+    }
   }
 }
 
