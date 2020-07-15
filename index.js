@@ -25,7 +25,6 @@ async function main() {
   if (Endpoint.hyperdriveWritable) {
     enableConfigurationSaving();
   }
-  console.debug("index.main: Endpoint is writable; enabled configuration saving.")
   Endpoint.onResponseSet(response => {
     updatePageResponse(response);
   });
