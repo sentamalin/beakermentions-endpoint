@@ -29,16 +29,18 @@ export async function createWebmention(input, endpoint) {
     await file.init();
 
     // Check to see if the target is valid
-    if (!validator.checkTarget(target, endpoint)) throw "targetNotValid";
+    let targetValid = await validator.checkTarget(target, endpoint);
+    if (!targetValid) { throw "targetNotValid"; }
 
     // Check to see if the source is valid
-    if (!validator.checkSource(source, target)) {
+    let sourceValid = await validator.checkSource(source, target);
+    if (!sourceValid) {
       // Delete the mention if the source URL is in the filestore
       if (file.mentionExists(source) > -1) {
         file.deleteMention(source);
         return successMessage(source, target, "Source URL deleted.");
       // Otherwise stop
-      } else throw "sourceNotValid";
+      } else { throw "sourceNotValid"; }
     } else {
       // Write the mention into storage and send a success message
       file.addMention(source);
@@ -55,7 +57,7 @@ export async function createWebmention(input, endpoint) {
       default:
         break;
     }
-    console.error("endpoint:", error);
+    console.error("createWebmention:", error);
     return failMessage(source, target, error);
   }
 }
