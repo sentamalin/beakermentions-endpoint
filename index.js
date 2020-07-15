@@ -17,6 +17,7 @@ var Endpoint;
 async function main() {
   // Initialize the environment
   Endpoint = new BeakermentionsEndpoint(`${location.protocol}//${location.host}${location.pathname}`);
+  document.getElementById("endpoint").value = Endpoint.endpoint;
   let params = new URLSearchParams(document.location.search.substring(1));
   console.debug("index.main: Grabbed variables from the environment");
 

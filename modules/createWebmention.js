@@ -50,10 +50,10 @@ export async function createWebmention(input, endpoint) {
     // Make all the errors human-readable, then send it as a message
     switch(error) {
       case "targetNotValid":
-        error = "Target URL is not valid. Make sure that the URL exists and properly references the source URL.";
+        error = "Target URL is not valid. Make sure that the URL exists and properly references the webmention endpoint.";
         break;
       case "sourceNotValid":
-        error = "Source URL is not valid. Make sure that the URL exists and properly references the webmention endpoint.";
+        error = "Source URL is not valid. Make sure that the URL exists and properly references the target.";
       default:
         break;
     }
