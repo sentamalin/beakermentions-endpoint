@@ -15,6 +15,7 @@ export class WebmentionValidator {
   #htmlRegex = new RegExp(/\.html?$/i);
   #relRegex = new RegExp(/rel=.*webmention.*/);
   #endpointRegex = new RegExp(/<.*>/);
+  #absoluteRegex = new RegExp(/:\/\//);
 
   /********** Public Methods **********/
 
@@ -34,7 +35,10 @@ export class WebmentionValidator {
         // Check if the source references the target in metadata
         console.debug("WebmentionValidator.checkSource: Checking metadata for 'target.'");
         let metadata = JSON.stringify(sourceStat.metadata);
-        if (sourceRegex.test(metadata)) { output = true; }
+        if (sourceRegex.test(metadata)) {
+          console.debug("WebmentionValidator.checkSource: 'target' found in metadata.");
+          output = true;
+        }
 
         // Check if the source references the target in its HTML
         if (!output) {
@@ -42,6 +46,7 @@ export class WebmentionValidator {
           let sourceFile = await sourceHyperdrive.readFile(sourcePath, "utf8");
           if (this.#htmlRegex.test(source)) {
             if (this.#checkTargetInSourceHTML(sourceFile, target)) {
+              console.debug("WebmentionValidator.checkSource: 'target' found in HTML.");
               output = true;
             }
           }
@@ -49,7 +54,10 @@ export class WebmentionValidator {
           // Check if the source references the target in its contents
           if (!output) {
             console.debug("WebmentionValidator.checkSource: Checking content for 'target.'");
-            if (regex.test(sourceFile)) { output = true; }
+            if (regex.test(sourceFile)) {
+              console.debug("WebmentionValidator.checkSource: 'target' found in content.");
+              output = true;
+            }
           }
         }
       }
@@ -65,6 +73,7 @@ export class WebmentionValidator {
           let sourceFile = await response.text();
           if (this.#htmlRegex.test(source)) {
             if (this.#checkTargetInSourceHTML(sourceFile, target)) {
+              console.debug("WebmentionValidator.checkSource: 'target' found in HTML.");
               output = true;
             }
           }
@@ -72,18 +81,17 @@ export class WebmentionValidator {
           // Check if the source references the target in its content
           if (!output) {
             console.debug("WebmentionValidator.checkSource: Checking content for 'target.'");
-            if (sourceRegex.test(sourceFile)) { output = true; }
+            if (sourceRegex.test(sourceFile)) {
+              console.debug("WebmentionValidator.checkSource: 'target' found in content.");
+              output = true;
+            }
           }
         }
       } catch (error) {
         console.error("WebmentionValidator.checkSource:", error);
       }
-    } finally {
-      if (output) {
-        console.debug("WebmentionValidator.checkSource: 'target' found in 'source.'");
-      }
-      return output;
     }
+    return output;
   }
 
   async checkTarget(target, endpoint) {
@@ -99,7 +107,10 @@ export class WebmentionValidator {
       if (targetStat.isFile() === true) {
         // Check if the metadata mentions this endpoint as @webmention
         console.debug("WebmentionValidator.checkTarget: Checking metadata for @webmention.");
-        if (webmentionURL === endpoint) { output = true; }
+        if (webmentionURL === endpoint) {
+          console.debug("WebmentionValidator.checkTarget: @webmention found in metadata.");
+          output = true;
+        }
 
         // Check if any <a> or <link> tags mention the endpoint with @rel="webmention"
         if (!output) {
@@ -107,6 +118,7 @@ export class WebmentionValidator {
           let targetFile = await targetHyperdrive.readFile(target, "utf8");
           if (this.#htmlRegex.test(target)) {
             if (this.#checkEndpointInTargetHTML(target, targetFile, endpoint)) {
+              console.debug("WebmentionValidator.checkTarget: @webmention found in HTML element with @rel=webmention.");
               output = true;
             }
           }
@@ -133,12 +145,16 @@ export class WebmentionValidator {
                 if (url === endpoint) { found = true; }
               }
             });
-            if (found) { output = true; }
+            if (found) {
+              console.debug("WebmentionValidator.checkTarget: @webmention found in HTTP Link headers.");
+              output = true;
+            }
           } else {
             console.debug("WebmentionValidator.checkTarget: Checking HTML for @rel=webmention.");
             let targetFile = await response.text();
             if (this.#htmlRegex.test(target)) {
               if (this.#checkEndpointInTargetHTML(target, targetFile, endpoint)) {
+                console.debug("WebmentionValidator.checkTarget: @webmention found in HTML element with @rel=webmention.");
                 output = true;
               }
             }
@@ -146,13 +162,9 @@ export class WebmentionValidator {
         }
       } catch (error) {
         console.error("WebmentionValidator: .checkTarget:", error);
-      } finally {
-        if (output) {
-          console.debug("WebmentionValidator.checkSource: 'endpoint' found in 'target.'");
-        }
-        return output;
       }
     }
+    return output;
   }
 
   /********** Private Methods **********/
@@ -180,21 +192,27 @@ export class WebmentionValidator {
   }
 
   #getAbsoluteURL(baseURL, relURL) {
-    let regex = RegExp(/:\/\//);
-    if (regex.test(relURL)) return relURL;
-    let output = baseURL.split("/");
-    if (relURL.charAt(0) === "/") {
-      output = output[0] + "//" + output[2] + relURL;
-      return output;
+    let output;
+    let baseSplit = baseURL.split("/");
+    if (this.#absoluteRegex.test(relURL)) { output = relURL; }
+    else if (relURL.charAt(0) === "/") {
+      output = `${baseSplit[0]}//${baseSplit[2]}${relURL}`;
     } else {
       let array = relURL.split("/");
-      output.pop();
+      baseSplit.pop();
       for (let i = 0; i < array.length; i++) {
         if (array[i] === ".") continue;
-        if (array[i] === "..") output.pop();
-        else output.push(array[i]);
+        if (array[i] === "..") baseSplit.pop();
+        else baseSplit.push(array[i]);
       }
-      return output.join("/");
+      output = baseSplit.join("/");
     }
+    let outputObject = {
+      "baseURL" : baseURL,
+      "relURL" : relURL,
+      "output" : output
+    };
+    console.debug("WebmentionValidator.#getAbsoluteURL: Parameters and output -", outputObject);
+    return output;
   }
 }
