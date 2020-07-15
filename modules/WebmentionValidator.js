@@ -70,7 +70,6 @@ export class WebmentionValidator {
         if (response.ok) {
           // Check if the source references the target in its HTML
           let sourceFile = await response.text();
-          console.debug("WebmentionValidator.checkSource: Read file -", sourceFile);
           if (this.#htmlRegex.test(source)) {
             console.debug("WebmentionValidator.checkSource: Is HTML; checking @href/@src for 'target.'");
             if (this.#checkTargetInSourceHTML(sourceFile, target)) {
@@ -141,7 +140,7 @@ export class WebmentionValidator {
         if (response.ok) {
           // First, check the HTTP Link Headers
           console.debug("WebmentionValidator.checkTarget: Checking HTTP Request for Link headers.");
-          let linkHeadersString = response.get("link");
+          let linkHeadersString = response.headers.get("link");
           if (!(linkHeadersString === null)) {
             let found = false;
             let linkHeaders = linkHeadersString.split(",");
