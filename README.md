@@ -45,5 +45,5 @@ Made with ❤️ and JavaScript. Please freely share and remix.
 [5]: https://docs.beakerbrowser.com/apis/beaker.hyperdrive/
 [6]: https://docs.beakerbrowser.com/apis/beaker.peersockets/
 [7]: hyper://9fa076bdc2a83f6d0d32ec010a71113b0d25eccf300a5eaedf72cf3326546c9a/
-[8]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/LICENSE.md
+[8]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/LICENSE
 [9]: https://developer.mozilla.org/en-US/docs/Web/API/Location/search
