@@ -113,9 +113,10 @@ export class BeakermentionsEndpoint {
       "whitelist" : this.whitelist
     });
     try {
-      await this.#thisHyperdrive(this.#configurationFile, file);
+      await this.#thisHyperdrive.writeFile(this.#configurationFile, file);
+      console.debug("BeakermentionsEndpoint.saveConfigurationFile: Configuration saved.");
     } catch (error) {
-      console.error("BeakermentionsEndpoint.sendWebmention", error);
+      console.error("BeakermentionsEndpoint.saveConfigurationFile:", error);
     }
   }
 

@@ -12,7 +12,7 @@
 
 import { BeakermentionsEndpoint } from "./modules/BeakermentionsEndpoint.js";
 
-var Endpoint;
+let Endpoint;
 
 async function main() {
   // Initialize the environment
@@ -58,8 +58,15 @@ function enableConfigurationSaving() {
   document.getElementById("blacklist").removeAttribute("disabled");
   document.getElementById("whitelist").removeAttribute("disabled");
   document.getElementById("save-configuration").removeAttribute("disabled");
-  document.getElementById("save-configuration").addEventListener("click", Endpoint.saveConfigurationFile);
+  document.getElementById("save-configuration").addEventListener("click", saveConfiguration);
   console.debug("index.enableConfigurationSaving: Enabled configuration saving.");
+}
+
+// Call the Endpoint to save the configuration
+function saveConfiguration() {
+  Endpoint.blacklist = document.getElementById("blacklist").value.split("\n");
+  Endpoint.whitelist = document.getElementById("whitelist").value.split("\n");
+  Endpoint.saveConfigurationFile();
 }
 
 // Update the response on the HTML
