@@ -103,6 +103,16 @@ a, abbr {
   text-transform: capitalize;
 }
 
+.responsePass::before {
+  content: "✔️ ";
+  color: #0c0;
+}
+
+.responseFail::before {
+  content: "❌ ";
+  color: #f00;
+}
+
 .response-output ul {
   list-style-type: none;
   margin: 0;

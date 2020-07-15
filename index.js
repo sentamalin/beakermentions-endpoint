@@ -22,10 +22,6 @@ async function main() {
   console.debug("index.main: Grabbed variables from the environment");
 
   // Initialize the endpoint and its event handlers
-  await Endpoint.init();
-  if (Endpoint.hyperdriveWritable) {
-    enableConfigurationSaving();
-  }
   Endpoint.onResponseSet(response => {
     updatePageResponse(response);
   });
@@ -38,6 +34,10 @@ async function main() {
     document.getElementById("whitelist").value = whitelist.join("\n");
   });
   console.debug("index.main: Added Endpoint.onWhitelistLoaded event handler.");
+  await Endpoint.init();
+  if (Endpoint.hyperdriveWritable) {
+    enableConfigurationSaving();
+  }
   console.debug("index.main: Endpoint is ready.");
   let sendMode = params.get("source") && params.get("target");
   if (sendMode) {
@@ -75,9 +75,10 @@ function updatePageResponse(message) {
   let template = document.querySelector(".response");
   let clone = template.content.cloneNode(true);
   if (message.type === "success")
-    clone.querySelector(".response-type").textContent = `✔️ ${message.type}`;
+    clone.querySelector(".response-type").classList.add("responsePass");
   else
-    clone.querySelector(".response-type").textContent = `❌ ${message.type}`;
+    clone.querySelector(".response-type").classList.add("responseFail");
+  clone.querySelector(".response-type").textContent = message.type;
   clone.querySelector(".response-source").textContent = message.source;
   clone.querySelector(".response-source").setAttribute("href", message.source);
   clone.querySelector(".response-target").textContent = message.target;
