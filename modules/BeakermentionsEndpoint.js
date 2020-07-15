@@ -10,15 +10,16 @@
 // [2]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/
 // [3]: /LICENSE.md
 
-import { endpointIdentityMessage, sendMessage } from "./webmentionMessages.js";
-import { sendJSONMessage, receiveJSONMessage } from "./sendJSON.js";
-import { createWebmention } from "./createWebmention.js";
+import { WebmentionValidator } from "./WebmentionValidator.js";
+import { MentionFilestore } from "./MentionFilestore.js";
+import * as Messages from "./Messages.js";
 
 export class BeakermentionsEndpoint {
   #thisHyperdrive = beaker.hyperdrive.drive("/");
   #configurationFile = "/configuration.json";
   #peerEvents = beaker.peersockets.watch();
   #topic = beaker.peersockets.join("webmention");
+  #validator = new WebmentionValidator();
 
   #blacklist = [""];
   get blacklist() { return this.#blacklist; }
@@ -94,11 +95,11 @@ export class BeakermentionsEndpoint {
   async sendWebmention() {
     try {
       if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
-        let message = sendMessage(this.source, this.target);
-        let response = await createWebmention(message, this.endpoint);
+        let message = Messages.sendMessage(this.source, this.target);
+        let response = await this.#createWebmention(message, this.endpoint);
         this.response = response;
       } else {
-        this.response = failMessage(this.source, this.target,
+        this.response = Messages.failMessage(this.source, this.target,
           "One of the URLs are blocked.");
       }
     } catch (error) {
@@ -136,14 +137,14 @@ export class BeakermentionsEndpoint {
 
   #setupEndpoint() {
     this.#peerEvents.addEventListener("join", e => {
-      sendJSONMessage(endpointIdentityMessage(), e.peerId);
+      this.#sendJSONMessage(Messages.endpointIdentityMessage(), e.peerId);
     });
     this.#topic.addEventListener("message", async(e) => {
-      let message = receiveJSONMessage(e);
+      let message = this.#receiveJSONMessage(e);
       switch(message.type) {
         case "send":
-          let reply = await createWebmention(message, this.endpoint);
-          sendJSONMessage(reply, e.peerId);
+          let reply = await this.#createWebmention(message, this.endpoint);
+          this.#sendJSONMessage(reply, e.peerId);
           break;
       }
     });
@@ -151,14 +152,14 @@ export class BeakermentionsEndpoint {
 
   #setupVisitor() {
     this.#topic.addEventListener("message", e => {
-      let message = receiveJSONMessage(e);
+      let message = this.#receiveJSONMessage(e);
       switch(message.type) {
         case "endpoint":
           if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
-            let reply = sendMessage(this.source, this.target);
-            sendJSONMessage(reply, e.peerId);
+            let reply = Messages.sendMessage(this.source, this.target);
+            this.#sendJSONMessage(reply, e.peerId);
           } else {
-            this.response = failMessage(this.source, this.target,
+            this.response = Messages.failMessage(this.source, this.target,
               "One of the URLs are blocked.");
             this.#topic.close();
           }
@@ -170,6 +171,18 @@ export class BeakermentionsEndpoint {
           break;
       }
     });
+  }
+
+  #sendJSONMessage(input, peerId) {
+    let serialized = JSON.stringify(input);
+    let message = new TextEncoder("utf-8").encode(serialized);
+    this.#topic.send(peerId, message);
+  }
+
+  #receiveJSONMessage(input) {
+    let message = new TextDecoder("utf-8").decode(input.message);
+    let parsedJSON = JSON.parse(message);
+    return parsedJSON;
   }
 
   #checkMessageURLsAgainstConfiguration(source, target) {
@@ -194,5 +207,50 @@ export class BeakermentionsEndpoint {
   
     if (passesBlacklist && passesWhitelist) return true;
     else return false;
+  }
+
+  async #createWebmention(input, endpoint) {
+    let source = input.source;
+    let target = input.target;
+  
+    try {
+      // Create and initialize an instance of MentionFilestore
+      let filePath = "/mentions/" + target;
+      filePath = filePath.replace("://", "/");
+      let file = new MentionFilestore(filePath + ".json");
+      await file.init();
+  
+      // Check to see if the target is valid
+      let targetValid = await this.#validator.checkTarget(target, endpoint);
+      if (!targetValid) { throw "targetNotValid"; }
+  
+      // Check to see if the source is valid
+      let sourceValid = await this.#validator.checkSource(source, target);
+      if (!sourceValid) {
+        // Delete the mention if the source URL is in the filestore
+        if (file.mentionExists(source) > -1) {
+          file.deleteMention(source);
+          return Messages.successMessage(source, target, "Source URL deleted.");
+        // Otherwise stop
+        } else { throw "sourceNotValid"; }
+      } else {
+        // Write the mention into storage and send a success message
+        file.addMention(source);
+        return Messages.successMessage(source, target, "Source URL Added.");
+      }
+    } catch (error) {
+      // Make all the errors human-readable, then send it as a message
+      switch(error) {
+        case "targetNotValid":
+          error = "Target URL is not valid. Make sure that the URL exists and properly references this webmention endpoint.";
+          break;
+        case "sourceNotValid":
+          error = "Source URL is not valid. Make sure that the URL exists and properly references the target.";
+        default:
+          break;
+      }
+      console.error("BeakermentionsEndpoint.createWebmention:", error);
+      return Messages.failMessage(source, target, error);
+    }
   }
 }

@@ -10,7 +10,6 @@
 // [2]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/
 // [3]: /LICENSE.md
 
-// Define a MentionFilestore class
 export class MentionFilestore {
   #thisHyperdrive;
   #path;
