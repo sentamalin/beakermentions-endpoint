@@ -1,4 +1,4 @@
-# 📡 Beakermentions Endpoint
+# Beakermentions Endpoint
 
 [Beakermentions Endpoint][1] is an endpoint implementation of the [W3C][2] [Webmention][3] recommendation for [Beaker Browser][4] users. Webmentions are a simple way to notify any URL when you mention it from another URL. This implementation utilizes Beaker Browser's [`hyperdrive`][5] and [`peersockets`][6] API. Deviations exist from the official recommendation due to the unique environment Beaker Browser provides:
 
@@ -36,6 +36,8 @@ Now, when an application opens Alice's file, they may notice the `@webmention` k
 
 Written in 2020 by [Don Geronimo][7]. To the extent possible under law, Don Geronimo has waived all copyright and related or neighboring rights to Beakermentions Endpoint by publishing it under the [CC0 1.0 Universal Public Domain Dedication][8]. This work is published from the United States.
 
+[Satellite Antenna Emoji][10] designed by [OpenMoji][11] – the open-source emoji and icon project. License: [CC BY-SA 4.0][12]. Changes: Removed empty padding and added license information in the file's metadata.
+
 Made with ❤️ and JavaScript. Please freely share and remix.
 
 [1]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/
@@ -47,3 +49,6 @@ Made with ❤️ and JavaScript. Please freely share and remix.
 [7]: hyper://9fa076bdc2a83f6d0d32ec010a71113b0d25eccf300a5eaedf72cf3326546c9a/
 [8]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/LICENSE
 [9]: https://developer.mozilla.org/en-US/docs/Web/API/Location/search
+[10]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/thumb.svg
+[11]: https://openmoji.org/
+[12]: https://creativecommons.org/licenses/by-sa/4.0/#
