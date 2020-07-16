@@ -20,6 +20,7 @@ async function main() {
   document.getElementById("endpoint").value = Endpoint.endpoint;
   let params = new URLSearchParams(document.location.search.substring(1));
   console.debug("index.main: Grabbed variables from the environment");
+  loadREADME();
 
   // Initialize the endpoint and its event handlers
   Endpoint.onResponseSet(response => {
@@ -51,6 +52,12 @@ async function main() {
       Endpoint.sendWebmention();
     }
   }
+}
+
+// Read the contents of README.md
+async function loadREADME() {
+  let readme = await beaker.hyperdrive.readFile("/README.md", "utf8");
+  document.getElementById("readme").innerHTML = beaker.markdown.toHTML(readme);
 }
 
 // Enable Configuration Saving

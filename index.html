@@ -54,36 +54,7 @@
           </div>
         </details>
       </div>
-      <section>
-        <h1>About Beakermentions Endpoint</h1>
-        <p>Beakermentions Endpoint is an endpoint implementation of the <a href="https://www.w3.org"><abbr title="World Wide Web Consortium">W3C</abbr></a> <a href="https://www.w3.org/TR/webmention/">Webmention</a> recommendation for <a href="https://beakerbrowser.com">Beaker Browser</a> users. Webmentions are a simple way to notify any <abbr title="Uniform Resource Locator">URL</abbr> when you mention it from another URL. This implementation utilizes Beaker Browser's <a href="https://docs.beakerbrowser.com/apis/beaker.hyperdrive"><code>hyperdrive</code></a> and <a href="https://docs.beakerbrowser.com/apis/beaker.peersockets/"><code>peersockets</code></a> <abbr title="Application Programming Interface">API</abbr>. Deviations exist from the official recommendation due to the unique environment Beaker Browser provides:</p>
-        <ul>
-          <li>The <code>source</code> may reference the <code>target</code> URL of the Webmention through the file's metadata keys (like <code>@inReplyTo</code>, <code>@likeOf</code>, <code>@rsvpTo</code>, <abbr title="Et Cetera">etc.</abbr>) in addition to the file's content.</li>
-          <li>The sender may look for a metadata key <code>@webmention</code> in the <code>target</code>'s URL to discover the <code>target</code>'s Beakermentions Endpoint in addition to the sender looking for an <abbr title="HyperText Transfer Protocol">HTTP</abbr> link header, a <code>&lt;link&gt;</code> element, or an <code>&lt;a&gt;</code> element with a <code>@rel</code> value of "webmention."</li>
-          <li>Communication between the users and the Beakermentions Endpoint are done through <a href="https://developer.mozilla.org/en-US/docs/Web/API/Location/search">Location</a> search strings and <code>beaker.peersockets</code> instead of <abbr title="HyperText Transfer Protocol">HTTP</abbr> POST.</li>
-        </ul>
-        <p>Mentions are not limited to <abbr title="HyperText Markup Language">HTML</abbr>; any file can mention any other file using metadata key-value pairs.</p>
-        <p>Do note that this is only an endpoint implementation; an endpoint only stores and provides the <code>source</code> URLs that mention a particular <code>target</code> URL. Any rendering of mentions (including which mentions to render) is done by an application itself after retrieving a <code>target</code>'s <code>source</code>s.</p>
-      </section>
-      <section>
-        <h1>How This Works</h1>
-        <ol>
-          <li>Alice writes a new file and saves it to <code>hyper://alice/microblog/a-good-day.md</code>.</li>
-          <li>Alice adds a <code>@webmention</code> metadata key to the new file with a value of their Beakermentions Endpoint: <code>hyper://alice-beakermentions/</code></li>
-          <li>Alice opens their Beakermentions Endpoint so it's listening for new sent mentions, then minimizes it to the background.</li>
-          <li>Bob sees Alice's new file and wants to tell Alice that they like it! They write a new file in response, add their own <code>@webmention</code> key in the metadata so others can respond to it, add a <code>@likeOf</code> key with a value of Alice's file URL, and saves their response to <code>hyper://bob/microblog/that-is-good.md</code>.</li>
-          <li>Bob's application notices that the file they're saving mentions Alice's file. After saving, it offers to bring Bob to Alice's Beakermentions Endpoint's page to automatically send the mention: <code>hyper://alice-beakermentions/?source=hyper://bob/microblog/that-is-good.md&target=hyper://alice/microblog/a-good-day.md&done=hyper://bob/</code>.</li>
-          <li>Alice's Beakermentions Endpoint verifies that Alice wants their file mentioned by checking that their file's <code>@webmention</code> key is the Beakermention Endpoint's URL, then checks Bob's file to make sure that they mention Alice's file URL in its metadata or in its content.</li>
-          <li>After verification, Alice's Beakermentions Endpoint stores the mention in <code>hyper://alice-beakermentions/mentions/hyper/alice/microblog/a-good-day.md.json</code>, then sends Bob a success message. At this point, the endpoint may send Bob back to <code>hyper://bob/</code>.</li>
-        </ol>
-        <p>As an alternative to step 5, Bob may interactively send the webmention (instead of their application) by visiting Alice's Beakermention Endpoint, entering their response as the <code>source</code> and Alice's file as the <code>target</code>, and pressing send.</p>
-        <p>Now, when an application opens Alice's file, they may notice the <code>@webmention</code> key in the metadata. They may get all the stored mentions from the Beakermentions Endpoint by reading <code>hyper://alice-beakermentions/mentions/hyper/alice/microblog/a-good-day.md.json</code> and display whichever mentions they want to present by processing each URL.</p>
-      </section>
-      <footer>
-        <h1>License</h1>
-        <p prefix="cc: http://creativecommons.org/ns#">Written in 2020 by <a property="cc:attributionURL" href="hyper://9fa076bdc2a83f6d0d32ec010a71113b0d25eccf300a5eaedf72cf3326546c9a/">Don Geronimo</a>. To the extent possible under law, <span property="cc:attributionName">Don Geronimo</span> has waived all copyright and related or neighboring rights to Beakermentions Endpoint by publishing it under the <a rel="license" property="cc:license" href="hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/LICENSE">CC0 1.0 Universal Public Domain Dedication</a>. This work is published from the United States.</p>
-        <p class="lovenote">Made with <abbr title="Love">❤️</abbr> and JavaScript. Please freely share and remix.</p>
-      </footer>
+      <section id="readme"></section>
     </main>
     <template class="response">
       <div class="response-output">

@@ -38,13 +38,9 @@ a, abbr {
   text-decoration: none;
 }
 
-.lovenote {
+#readme > p:last-child {
   font-size: x-small;
   color: #999;
-}
-
-.lovenote abbr {
-  color: #f99;
 }
 
 .send form p {
