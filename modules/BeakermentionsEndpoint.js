@@ -10,7 +10,7 @@
 // You should have received a copy of the CC0 Public Domain Dedication along
 // with this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-import { WebmentionValidator } from "./WebmentionValidator.js";
+import { WebmentionValidator } from "./Validator/index.js";
 import { MentionFilestore } from "./MentionFilestore.js";
 import * as Messages from "./Messages.js";
 
@@ -122,6 +122,15 @@ export class BeakermentionsEndpoint {
 
   /********** Private Methods **********/
 
+  async #checkTarget(target, endpoint) {
+    let output = false;
+    let targetEndpoint = await this.#validator.getTargetEndpoint(target);
+    if (targetEndpoint !== null) {
+      if (targetEndpoint = endpoint) { output = true; }
+    }
+    return output;
+  }
+
   async #loadConfigurationFile() {
     try {
       let fileString = await this.#thisHyperdrive.readFile(this.#configurationFile);
@@ -222,7 +231,7 @@ export class BeakermentionsEndpoint {
       await file.init();
   
       // Check to see if the target is valid
-      let targetValid = await this.#validator.checkTarget(target, endpoint);
+      let targetValid = await this.#checkTarget(target, endpoint);
       if (!targetValid) { throw "targetNotValid"; }
   
       // Check to see if the source is valid
