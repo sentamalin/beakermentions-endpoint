@@ -148,6 +148,7 @@ export class BeakermentionsEndpoint {
   #setupEndpoint() {
     this.#peerEvents.addEventListener("join", e => {
       this.#sendJSONMessage(Messages.endpointIdentityMessage(), e.peerId);
+      console.debug("BeakermentionsEndpoint: New peer joined; sending Endpoint message.");
     });
     this.#topic.addEventListener("message", async(e) => {
       let message = this.#receiveJSONMessage(e);
@@ -162,16 +163,20 @@ export class BeakermentionsEndpoint {
 
   #setupVisitor() {
     this.#topic.addEventListener("message", e => {
+      console.debug("BeakermentionsEndpoint: Endpoint message received.");
       let message = this.#receiveJSONMessage(e);
       switch(message.type) {
         case "endpoint":
-          if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
-            let reply = Messages.sendMessage(this.source, this.target);
-            this.#sendJSONMessage(reply, e.peerId);
-          } else {
-            this.response = Messages.failMessage(this.source, this.target,
-              "One of the URLs are blocked.");
-            this.#topic.close();
+          if (this.source && this.target) {
+            if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
+              let reply = Messages.sendMessage(this.source, this.target);
+              this.#sendJSONMessage(reply, e.peerId);
+              console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.")
+            } else {
+              this.response = Messages.failMessage(this.source, this.target,
+                "One of the URLs are blocked.");
+              this.#topic.close();
+            }
           }
           break;
         case "success":
