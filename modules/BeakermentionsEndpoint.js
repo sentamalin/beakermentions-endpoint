@@ -17,8 +17,9 @@ import * as Messages from "./Messages.js";
 export class BeakermentionsEndpoint {
   #thisHyperdrive = beaker.hyperdrive.drive("/");
   #configurationFile = "/configuration.json";
-  #peerEvents = beaker.peersockets.watch();
-  #topic = beaker.peersockets.join("webmention");
+  #peerEvents;
+  #peers;
+  #topic;
   #validator = new WebmentionValidator();
 
   #blacklist = [""];
@@ -83,6 +84,8 @@ export class BeakermentionsEndpoint {
       let hyperdriveInfo = await this.#thisHyperdrive.getInfo();
       this.#hyperdriveWritable = hyperdriveInfo.writable;
       await this.#loadConfigurationFile();
+      this.#setupPeerList();
+      this.#topic = beaker.peersockets.join("webmention");
       if (this.hyperdriveWritable) { this.#setupEndpoint(); }
       else { this.#setupVisitor(); }
     } catch (error) {
@@ -145,28 +148,46 @@ export class BeakermentionsEndpoint {
     }
   }
 
-  #setupEndpoint() {
+  #setupPeerList() {
+    this.#peerEvents = beaker.peersockets.watch();
+    this.#peers = new Set();
     this.#peerEvents.addEventListener("join", e => {
-      this.#sendJSONMessage(Messages.endpointIdentityMessage(), e.peerId);
-      console.debug("BeakermentionsEndpoint: New peer joined; sending Endpoint message.");
+      this.#peers.add(e.peerId);
+      console.debug("BeakermentionsEndpoint: Peer joined -", e.peerId);
+      if (!this.#hyperdriveWritable) { this.#sendJSONMessage(Messages.visitorIdentityMessage(), e.peerId); }
     });
+    this.#peerEvents.addEventListener("leave", e => {
+      this.#peers.delete(e.peerId);
+      console.debug("BeakermentionsEndpoint: Peer left -", e.peerId);
+    });
+    console.debug("BeakermentionsEndpoint.#setupPeerList: Peer list set up.");
+  }
+
+  #setupEndpoint() {
     this.#topic.addEventListener("message", async(e) => {
       let message = this.#receiveJSONMessage(e);
+      let reply;
       switch(message.type) {
+        case "visitor":
+          reply = Messages.endpointIdentityMessage();
+          this.#sendJSONMessage(reply, e.peerId);
+          console.debug("BeakermentionsEndpoint: Visitor message received; sending Endpoint message.");
+          break;
         case "send":
-          let reply = await this.#createWebmention(message, this.endpoint);
+          reply = await this.#createWebmention(message, this.endpoint);
           this.#sendJSONMessage(reply, e.peerId);
           break;
       }
     });
+    console.debug("BeakermentionsEndpoint.#setupEndpoint: Endpoint set up.");
   }
 
   #setupVisitor() {
     this.#topic.addEventListener("message", e => {
-      console.debug("BeakermentionsEndpoint: Endpoint message received.");
       let message = this.#receiveJSONMessage(e);
       switch(message.type) {
         case "endpoint":
+          console.debug("BeakermentionsEndpoint: Endpoint message received.");
           if (this.source && this.target) {
             if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
               let reply = Messages.sendMessage(this.source, this.target);
@@ -177,6 +198,8 @@ export class BeakermentionsEndpoint {
                 "One of the URLs are blocked.");
               this.#topic.close();
             }
+          } else {
+            this.#topic.close();
           }
           break;
         case "success":
@@ -186,6 +209,7 @@ export class BeakermentionsEndpoint {
           break;
       }
     });
+    console.debug("BeakermentionsEndpoint.#setupVisitor: Visitor set up.");
   }
 
   #sendJSONMessage(input, peerId) {

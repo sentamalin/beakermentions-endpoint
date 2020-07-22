@@ -10,10 +10,17 @@
 // You should have received a copy of the CC0 Public Domain Dedication along
 // with this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-// Create an identity message
+// Create an endpoint identity message
 export function endpointIdentityMessage() {
   let message = {
-    "type" : "endpoint",
+    "type" : "endpoint"
+  };
+  return message;
+}
+
+export function visitorIdentityMessage() {
+  let message = {
+    "type" : "visitor"
   };
   return message;
 }
