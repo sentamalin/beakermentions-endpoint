@@ -16,30 +16,23 @@ let Endpoint;
 
 async function main() {
   // Initialize the environment
-  Endpoint = new BeakermentionsEndpoint(`${location.protocol}//${location.host}${location.pathname}`);
+  Endpoint = new BeakermentionsEndpoint(location.href, window.localStorage);
   document.getElementById("endpoint").value = Endpoint.endpoint;
   let params = new URLSearchParams(document.location.search.substring(1));
   console.debug("index.main: Grabbed variables from the environment");
   loadREADME();
 
   // Initialize the endpoint and its event handlers
-  Endpoint.onResponseSet(response => {
-    updatePageResponse(response);
-  });
+  Endpoint.onResponseSet(response => { updatePageResponse(response); });
   console.debug("index.main: Added Endpoint.onResponseSet event handler.");
-  Endpoint.onBlacklistLoaded(blacklist => {
-    document.getElementById("blacklist").value = blacklist.join("\n");
-  });
+  Endpoint.onBlacklistLoaded(blacklist => { document.getElementById("blacklist").value = blacklist.join("\n"); });
   console.debug("index.main: Added Endpoint.onBlacklistLoaded event handler.");
-  Endpoint.onWhitelistLoaded(whitelist => {
-    document.getElementById("whitelist").value = whitelist.join("\n");
-  });
+  Endpoint.onWhitelistLoaded(whitelist => { document.getElementById("whitelist").value = whitelist.join("\n"); });
   console.debug("index.main: Added Endpoint.onWhitelistLoaded event handler.");
+  document.getElementById("save-configuration").addEventListener("click", saveConfiguration);
   await Endpoint.init();
-  if (Endpoint.hyperdriveWritable) {
-    enableConfigurationSaving();
-  }
   console.debug("index.main: Endpoint is ready.");
+
   let sendMode = params.get("source") && params.get("target");
   if (sendMode) {
     Endpoint.source = params.get("source");
@@ -58,15 +51,6 @@ async function main() {
 async function loadREADME() {
   let readme = await beaker.hyperdrive.readFile("/README.md", "utf8");
   document.getElementById("readme").innerHTML = beaker.markdown.toHTML(readme);
-}
-
-// Enable Configuration Saving
-function enableConfigurationSaving() {
-  document.getElementById("blacklist").removeAttribute("disabled");
-  document.getElementById("whitelist").removeAttribute("disabled");
-  document.getElementById("save-configuration").removeAttribute("disabled");
-  document.getElementById("save-configuration").addEventListener("click", saveConfiguration);
-  console.debug("index.enableConfigurationSaving: Enabled configuration saving.");
 }
 
 // Call the Endpoint to save the configuration

@@ -21,6 +21,7 @@ export class BeakermentionsEndpoint {
   #peers;
   #topic;
   #validator = new WebmentionValidator();
+  #storage;
 
   #blacklist = [""];
   get blacklist() { return this.#blacklist; }
@@ -75,15 +76,16 @@ export class BeakermentionsEndpoint {
 
   /********** Constructor/Init **********/
 
-  constructor(endpoint) {
+  constructor(endpoint, storage) {
     this.#endpoint = endpoint;
+    this.#storage = storage;
   }
 
   async init() {
     try {
       let hyperdriveInfo = await this.#thisHyperdrive.getInfo();
       this.#hyperdriveWritable = hyperdriveInfo.writable;
-      await this.#loadConfigurationFile();
+      this.#loadConfigurationFile();
       this.#setupPeerList();
       this.#topic = beaker.peersockets.join("webmention");
       if (this.hyperdriveWritable) { this.#setupEndpoint(); }
@@ -110,17 +112,9 @@ export class BeakermentionsEndpoint {
     }
   }
 
-  async saveConfigurationFile() {
-    let file = JSON.stringify({
-      "blacklist" : this.blacklist,
-      "whitelist" : this.whitelist
-    });
-    try {
-      await this.#thisHyperdrive.writeFile(this.#configurationFile, file);
-      console.debug("BeakermentionsEndpoint.saveConfigurationFile: Configuration saved.");
-    } catch (error) {
-      console.error("BeakermentionsEndpoint.saveConfigurationFile:", error);
-    }
+  saveConfigurationFile() {
+    this.#storage.setItem("blacklist", JSON.stringify(this.blacklist));
+    this.#storage.setItem("whitelist", JSON.stringify(this.whitelist));
   }
 
   /********** Private Methods **********/
@@ -134,18 +128,9 @@ export class BeakermentionsEndpoint {
     return output;
   }
 
-  async #loadConfigurationFile() {
-    try {
-      let fileString = await this.#thisHyperdrive.readFile(this.#configurationFile);
-      let file = JSON.parse(fileString);
-      if (file === null) throw "errorConfigurationFile";
-      else {
-        this.blacklist = file.blacklist;
-        this.whitelist = file.whitelist;
-      }
-    } catch (error) {
-      console.error("BeakermentionsEndpoint.#loadConfigurationFile:", error);
-    }
+  #loadConfigurationFile() {
+    if (this.#storage.getItem("blacklist")) { this.blacklist = JSON.parse(this.#storage.getItem("blacklist")); }
+    if (this.#storage.getItem("whitelist")) { this.whitelist = JSON.parse(this.#storage.getItem("whitelist")); }
   }
 
   #setupPeerList() {
