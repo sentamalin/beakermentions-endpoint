@@ -239,9 +239,7 @@ export class BeakermentionsEndpoint {
   
     try {
       // Create and initialize an instance of MentionFilestore
-      let filePath = "/mentions/" + target;
-      filePath = filePath.replace("://", "/");
-      let file = new MentionFilestore(filePath + ".json");
+      let file = new MentionFilestore(`${target}.webmention`);
       await file.init();
   
       // Check to see if the target is valid

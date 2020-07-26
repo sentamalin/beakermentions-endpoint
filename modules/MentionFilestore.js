@@ -18,7 +18,9 @@ export class MentionFilestore {
   /********** Constructor **********/
 
   constructor(path) {
-    this.#path = path;
+    const url = new URL(path);
+    this.#thisHyperdrive = beaker.hyperdrive.drive(`hyper://${url.hostname}/`);
+    this.#path = url.pathname;
   }
 
   /********** Public Methods **********/
@@ -27,7 +29,6 @@ export class MentionFilestore {
   async init() {
     let file = [];
     try {
-      this.#thisHyperdrive = beaker.hyperdrive.drive("/");
       let fileString = await this.#thisHyperdrive.readFile(this.#path, "utf8");
       file = JSON.parse(fileString);
     } catch (error) {
