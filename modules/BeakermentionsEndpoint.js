@@ -100,8 +100,7 @@ export class BeakermentionsEndpoint {
           let response = await this.#createWebmention(message, this.endpoint);
           this.response = response;
         } else {
-          this.response = Messages.failMessage(this.source, this.target,
-            "One of the URLs are blocked.");
+          this.response = Messages.failMessage(this.source, this.target, "One of the URLs are blocked.");
         }
       } catch (error) {
         console.error("BeakermentionsEndpoint.sendWebmention:", error);
@@ -169,12 +168,20 @@ export class BeakermentionsEndpoint {
           break;
         case "send":
           let reply;
-          if (this.#checkMessageURLsAgainstConfiguration(message.source, message.target)) {
-            reply = await this.#createWebmention(message, this.endpoint);
-            console.debug("BeakermentionsEndpoint: Send message checks out; sending Success message.");
+          const url = new URL(message.target);
+          const origin = `hyper://${url.hostname}/`;
+          const info = await beaker.hyperdrive.getInfo(origin);
+          if (info.writable) {
+            if (this.#checkMessageURLsAgainstConfiguration(message.source, message.target)) {
+              reply = await this.#createWebmention(message, this.endpoint);
+              console.debug("BeakermentionsEndpoint: Send message checks out; sending Success message.");
+            } else {
+              reply = Messages.failMessage(message.source, message.target, "One of the URLs are blocked.");
+              console.debug("BeakermentionsEndpoint: URLs are blocked; sending Fail message.");
+            }
           } else {
-            reply = Messages.failMessage(message.source, message.target);
-            console.debug("BeakermentionsEndpoint: URLs are blocked; sending Fail message.");
+            reply = Messages.failMessage(message.source, message.target, "The Target URL's Webmention store is not writable.");
+            console.debug("BeakermentionsEndpoint: Can't write to webmention store; sending Fail message.");
           }
           this.#sendJSONMessage(reply, e.peerId);
           break;
