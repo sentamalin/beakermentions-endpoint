@@ -18,9 +18,10 @@ export function endpointIdentityMessage() {
   return message;
 }
 
-export function visitorIdentityMessage() {
+export function visitorIdentityMessage(hash) {
   let message = {
-    "type" : "visitor"
+    "type" : "visitor",
+    "hash" : hash
   };
   return message;
 }

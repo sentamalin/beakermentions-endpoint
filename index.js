@@ -40,10 +40,7 @@ async function main() {
     Endpoint.target = params.get("target");
     document.getElementById("send-webmention-target").value = Endpoint.target;
     if (params.get("done")) { Endpoint.done = params.get("done"); }
-    if (Endpoint.hyperdriveWritable) {
-      console.debug("index.main: Try directly sending a webmention.");
-      Endpoint.sendWebmention();
-    }
+    Endpoint.sendWebmention();
   }
 }
 

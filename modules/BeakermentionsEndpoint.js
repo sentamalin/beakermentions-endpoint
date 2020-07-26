@@ -15,8 +15,6 @@ import { MentionFilestore } from "./MentionFilestore.js";
 import * as Messages from "./Messages.js";
 
 export class BeakermentionsEndpoint {
-  #thisHyperdrive = beaker.hyperdrive.drive("/");
-  #configurationFile = "/configuration.json";
   #peerEvents;
   #peers;
   #topic;
@@ -59,9 +57,6 @@ export class BeakermentionsEndpoint {
   #endpoint;
   get endpoint() { return this.#endpoint; }
 
-  #hyperdriveWritable = false;
-  get hyperdriveWritable() { return this.#hyperdriveWritable; }
-
   #source;
   get source() { return this.#source; }
   set source(source) { this.#source = source; }
@@ -83,13 +78,10 @@ export class BeakermentionsEndpoint {
 
   async init() {
     try {
-      let hyperdriveInfo = await this.#thisHyperdrive.getInfo();
-      this.#hyperdriveWritable = hyperdriveInfo.writable;
       this.#loadConfigurationFile();
       this.#setupPeerList();
       this.#topic = beaker.peersockets.join("webmention");
-      if (this.hyperdriveWritable) { this.#setupEndpoint(); }
-      else { this.#setupVisitor(); }
+      this.#setupMessaging();
     } catch (error) {
       console.error("BeakermentionsEndpoint.init:", error);
     }
@@ -98,17 +90,26 @@ export class BeakermentionsEndpoint {
   /********** Public Methods **********/
 
   async sendWebmention() {
-    try {
-      if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
-        let message = Messages.sendMessage(this.source, this.target);
-        let response = await this.#createWebmention(message, this.endpoint);
-        this.response = response;
-      } else {
-        this.response = Messages.failMessage(this.source, this.target,
-          "One of the URLs are blocked.");
+    const url = new URL(this.#target);
+    const origin = `hyper://${url.hostname}/`;
+    const info = await beaker.hyperdrive.getInfo(origin);
+    if (info.writable) {
+      try {
+        if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
+          let message = Messages.sendMessage(this.source, this.target);
+          let response = await this.#createWebmention(message, this.endpoint);
+          this.response = response;
+        } else {
+          this.response = Messages.failMessage(this.source, this.target,
+            "One of the URLs are blocked.");
+        }
+      } catch (error) {
+        console.error("BeakermentionsEndpoint.sendWebmention:", error);
       }
-    } catch (error) {
-      console.error("BeakermentionsEndpoint.sendWebmention:", error);
+    } else {
+      for (let peer of this.#peers) {
+        this.#sendJSONMessage(Messages.visitorIdentityMessage(this.#getHash(this.target)), peer);
+      }
     }
   }
 
@@ -139,7 +140,6 @@ export class BeakermentionsEndpoint {
     this.#peerEvents.addEventListener("join", e => {
       this.#peers.add(e.peerId);
       console.debug("BeakermentionsEndpoint: Peer joined -", e.peerId);
-      if (!this.#hyperdriveWritable) { this.#sendJSONMessage(Messages.visitorIdentityMessage(), e.peerId); }
     });
     this.#peerEvents.addEventListener("leave", e => {
       this.#peers.delete(e.peerId);
@@ -148,53 +148,60 @@ export class BeakermentionsEndpoint {
     console.debug("BeakermentionsEndpoint.#setupPeerList: Peer list set up.");
   }
 
-  #setupEndpoint() {
+  #setupMessaging() {
     this.#topic.addEventListener("message", async(e) => {
-      let message = this.#receiveJSONMessage(e);
-      let reply;
+      const message = this.#receiveJSONMessage(e);
       switch(message.type) {
         case "visitor":
-          reply = Messages.endpointIdentityMessage();
-          this.#sendJSONMessage(reply, e.peerId);
-          console.debug("BeakermentionsEndpoint: Visitor message received; sending Endpoint message.");
+          if (this.#checkHashAgainstWhitelist(message.hash)) {
+            const reply = Messages.endpointIdentityMessage();
+            this.#sendJSONMessage(reply, e.peerId);
+            console.debug("BeakermentionsEndpoint: Visitor message has whitelisted hash; sending Endpoint message.");
+          }
           break;
-        case "send":
-          reply = await this.#createWebmention(message, this.endpoint);
-          this.#sendJSONMessage(reply, e.peerId);
-          break;
-      }
-    });
-    console.debug("BeakermentionsEndpoint.#setupEndpoint: Endpoint set up.");
-  }
-
-  #setupVisitor() {
-    this.#topic.addEventListener("message", e => {
-      let message = this.#receiveJSONMessage(e);
-      switch(message.type) {
         case "endpoint":
           console.debug("BeakermentionsEndpoint: Endpoint message received.");
           if (this.source && this.target) {
-            if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
-              let reply = Messages.sendMessage(this.source, this.target);
-              this.#sendJSONMessage(reply, e.peerId);
-              console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.")
-            } else {
-              this.response = Messages.failMessage(this.source, this.target,
-                "One of the URLs are blocked.");
-              this.#topic.close();
-            }
-          } else {
-            this.#topic.close();
+            const reply = Messages.sendMessage(this.source, this.target);
+            this.#sendJSONMessage(reply, e.peerId);
+            console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.")
           }
+          break;
+        case "send":
+          let reply;
+          if (this.#checkMessageURLsAgainstConfiguration(message.source, message.target)) {
+            reply = await this.#createWebmention(message, this.endpoint);
+            console.debug("BeakermentionsEndpoint: Send message checks out; sending Success message.");
+          } else {
+            reply = Messages.failMessage(message.source, message.target);
+            console.debug("BeakermentionsEndpoint: URLs are blocked; sending Fail message.");
+          }
+          this.#sendJSONMessage(reply, e.peerId);
           break;
         case "success":
         case "failure":
           this.response = message;
-          this.#topic.close();
           break;
       }
     });
-    console.debug("BeakermentionsEndpoint.#setupVisitor: Visitor set up.");
+    console.debug("BeakermentionsEndpoint.#setupMessaging: Message listeners set up.");
+  }
+
+  #getHash(target) {
+    const url = new URL(target);
+    const origin = `hyper://${url.hostname}/`;
+    return origin;
+  }
+
+  #checkHashAgainstWhitelist(hash) {
+    let output = false;
+    for (let i = 0; i < this.#whitelist.length; i++) {
+      if (this.#getHash(this.#whitelist[i]) === hash) {
+        output = true;
+        break;
+      }
+    }
+    return output;
   }
 
   #sendJSONMessage(input, peerId) {
