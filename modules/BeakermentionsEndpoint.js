@@ -167,7 +167,8 @@ export class BeakermentionsEndpoint {
       const message = this.#receiveJSONMessage(e);
       switch(message.type) {
         case "visitor":
-          if (this.#checkHashAgainstWhitelist(message.hash)) {
+          const hashInList = await this.#checkHashAgainstWhitelist(message.hash);
+          if (hashInList) {
             const reply = Messages.endpointIdentityMessage();
             this.#sendJSONMessage(reply, e.peerId);
             console.debug("BeakermentionsEndpoint: Visitor message has whitelisted hash; sending Endpoint message.");
