@@ -46,6 +46,7 @@ export class BeakermentionsEndpoint {
   #response;
   get response() { return this.#response; }
   set response(response) {
+    clearTimeout(this.#responseTimeout);
     this.#response = response;
     this.responseSet(response);
   }
@@ -53,6 +54,7 @@ export class BeakermentionsEndpoint {
   onResponseSet(eventHandler) {
     this.responseSet = eventHandler;
   }
+  #responseTimeout;
 
   #endpoint;
   get endpoint() { return this.#endpoint; }
@@ -109,6 +111,9 @@ export class BeakermentionsEndpoint {
       for (let peer of this.#peers) {
         this.#sendJSONMessage(Messages.visitorIdentityMessage(this.#getHash(this.target)), peer);
       }
+      this.#responseTimeout = setTimeout(() => {
+        this.response = Messages.failMessage(this.source, this.target, "No peers around that can reply to this webmention.");
+      }, 60000);
     }
   }
 
