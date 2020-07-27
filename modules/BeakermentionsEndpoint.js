@@ -109,7 +109,8 @@ export class BeakermentionsEndpoint {
       }
     } else {
       for (let peer of this.#peers) {
-        this.#sendJSONMessage(Messages.visitorIdentityMessage(this.#getHash(this.target)), peer);
+        const hash = await this.#getHash(this.target);
+        this.#sendJSONMessage(Messages.visitorIdentityMessage(hash), peer);
       }
       this.#responseTimeout = setTimeout(() => {
         this.response = Messages.failMessage(this.source, this.target, "No peers around that can reply to this webmention.");
@@ -208,21 +209,33 @@ export class BeakermentionsEndpoint {
     console.debug("BeakermentionsEndpoint.#setupMessaging: Message listeners set up.");
   }
 
-  #getHash(target) {
+  async #getHash(target) {
     const url = new URL(target);
     const origin = `hyper://${url.hostname}/`;
-    return origin;
+    const output = await this.#sha256sum(origin);
+    return output;
   }
 
-  #checkHashAgainstWhitelist(hash) {
+  async #checkHashAgainstWhitelist(hash) {
     let output = false;
     for (let i = 0; i < this.#whitelist.length; i++) {
-      if (this.#getHash(this.#whitelist[i]) === hash) {
+      const whitelistHash = await this.#getHash(this.#whitelist[i]);
+      if (whitelistHash === hash) {
         output = true;
         break;
       }
     }
     return output;
+  }
+
+  async #sha256sum(message) {
+    // Utilize the Web Cryptography API instead of importing another source
+    // Obtained from https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
+    const msgUint8 = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
   }
 
   #sendJSONMessage(input, peerId) {
