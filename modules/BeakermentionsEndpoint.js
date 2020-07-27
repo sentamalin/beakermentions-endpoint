@@ -112,9 +112,18 @@ export class BeakermentionsEndpoint {
     }
   }
 
-  saveConfigurationFile() {
+  async saveConfigurationFile() {
     this.#storage.setItem("blacklist", JSON.stringify(this.blacklist));
     this.#storage.setItem("whitelist", JSON.stringify(this.whitelist));
+
+    // Save and delete a temporary file in each whitelisted drive to ask for write permissions.
+    for (let i = 1; i < this.#whitelist.length; i++) {
+      const hyperdrive = beaker.hyperdrive.drive(this.#whitelist[i]);
+      await hyperdrive.writeFile("/tmp-beakermentions", "", "utf8");
+      await hyperdrive.unlink("/tmp-beakermentions");
+    }
+
+    console.debug("BeakermentionsEndpoint.saveConfigurationFile: Configuration saved to local storage.");
   }
 
   /********** Private Methods **********/
