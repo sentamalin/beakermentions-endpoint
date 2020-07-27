@@ -15,12 +15,11 @@ import { MentionFilestore } from "./MentionFilestore.js";
 import * as Messages from "./Messages.js";
 
 export class BeakermentionsEndpoint {
-  #thisHyperdrive = beaker.hyperdrive.drive("/");
-  #configurationFile = "/configuration.json";
   #peerEvents;
   #peers;
   #topic;
   #validator = new WebmentionValidator();
+  #storage;
 
   #blacklist = [""];
   get blacklist() { return this.#blacklist; }
@@ -47,6 +46,7 @@ export class BeakermentionsEndpoint {
   #response;
   get response() { return this.#response; }
   set response(response) {
+    clearTimeout(this.#responseTimeout);
     this.#response = response;
     this.responseSet(response);
   }
@@ -54,12 +54,10 @@ export class BeakermentionsEndpoint {
   onResponseSet(eventHandler) {
     this.responseSet = eventHandler;
   }
+  #responseTimeout;
 
   #endpoint;
   get endpoint() { return this.#endpoint; }
-
-  #hyperdriveWritable = false;
-  get hyperdriveWritable() { return this.#hyperdriveWritable; }
 
   #source;
   get source() { return this.#source; }
@@ -75,19 +73,17 @@ export class BeakermentionsEndpoint {
 
   /********** Constructor/Init **********/
 
-  constructor(endpoint) {
+  constructor(endpoint, storage) {
     this.#endpoint = endpoint;
+    this.#storage = storage;
   }
 
   async init() {
     try {
-      let hyperdriveInfo = await this.#thisHyperdrive.getInfo();
-      this.#hyperdriveWritable = hyperdriveInfo.writable;
-      await this.#loadConfigurationFile();
+      this.#loadConfigurationFile();
       this.#setupPeerList();
       this.#topic = beaker.peersockets.join("webmention");
-      if (this.hyperdriveWritable) { this.#setupEndpoint(); }
-      else { this.#setupVisitor(); }
+      this.#setupMessaging();
     } catch (error) {
       console.error("BeakermentionsEndpoint.init:", error);
     }
@@ -96,31 +92,44 @@ export class BeakermentionsEndpoint {
   /********** Public Methods **********/
 
   async sendWebmention() {
-    try {
-      if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
-        let message = Messages.sendMessage(this.source, this.target);
-        let response = await this.#createWebmention(message, this.endpoint);
-        this.response = response;
-      } else {
-        this.response = Messages.failMessage(this.source, this.target,
-          "One of the URLs are blocked.");
+    const url = new URL(this.#target);
+    const origin = `hyper://${url.hostname}/`;
+    const info = await beaker.hyperdrive.getInfo(origin);
+    if (info.writable) {
+      try {
+        if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
+          let message = Messages.sendMessage(this.source, this.target);
+          let response = await this.#createWebmention(message, this.endpoint);
+          this.response = response;
+        } else {
+          this.response = Messages.failMessage(this.source, this.target, "One of the URLs are blocked.");
+        }
+      } catch (error) {
+        console.error("BeakermentionsEndpoint.sendWebmention:", error);
       }
-    } catch (error) {
-      console.error("BeakermentionsEndpoint.sendWebmention:", error);
+    } else {
+      for (let peer of this.#peers) {
+        const hash = await this.#getHash(this.target);
+        this.#sendJSONMessage(Messages.visitorIdentityMessage(hash), peer);
+      }
+      this.#responseTimeout = setTimeout(() => {
+        this.response = Messages.failMessage(this.source, this.target, "No peers around that can reply to this webmention.");
+      }, 60000);
     }
   }
 
   async saveConfigurationFile() {
-    let file = JSON.stringify({
-      "blacklist" : this.blacklist,
-      "whitelist" : this.whitelist
-    });
-    try {
-      await this.#thisHyperdrive.writeFile(this.#configurationFile, file);
-      console.debug("BeakermentionsEndpoint.saveConfigurationFile: Configuration saved.");
-    } catch (error) {
-      console.error("BeakermentionsEndpoint.saveConfigurationFile:", error);
+    this.#storage.setItem("blacklist", JSON.stringify(this.blacklist));
+    this.#storage.setItem("whitelist", JSON.stringify(this.whitelist));
+
+    // Save and delete a temporary file in each whitelisted drive to ask for write permissions.
+    for (let i = 1; i < this.#whitelist.length; i++) {
+      const hyperdrive = beaker.hyperdrive.drive(this.#whitelist[i]);
+      await hyperdrive.writeFile("/tmp-beakermentions", "", "utf8");
+      await hyperdrive.unlink("/tmp-beakermentions");
     }
+
+    console.debug("BeakermentionsEndpoint.saveConfigurationFile: Configuration saved to local storage.");
   }
 
   /********** Private Methods **********/
@@ -134,18 +143,9 @@ export class BeakermentionsEndpoint {
     return output;
   }
 
-  async #loadConfigurationFile() {
-    try {
-      let fileString = await this.#thisHyperdrive.readFile(this.#configurationFile);
-      let file = JSON.parse(fileString);
-      if (file === null) throw "errorConfigurationFile";
-      else {
-        this.blacklist = file.blacklist;
-        this.whitelist = file.whitelist;
-      }
-    } catch (error) {
-      console.error("BeakermentionsEndpoint.#loadConfigurationFile:", error);
-    }
+  #loadConfigurationFile() {
+    if (this.#storage.getItem("blacklist")) { this.blacklist = JSON.parse(this.#storage.getItem("blacklist")); }
+    if (this.#storage.getItem("whitelist")) { this.whitelist = JSON.parse(this.#storage.getItem("whitelist")); }
   }
 
   #setupPeerList() {
@@ -154,7 +154,6 @@ export class BeakermentionsEndpoint {
     this.#peerEvents.addEventListener("join", e => {
       this.#peers.add(e.peerId);
       console.debug("BeakermentionsEndpoint: Peer joined -", e.peerId);
-      if (!this.#hyperdriveWritable) { this.#sendJSONMessage(Messages.visitorIdentityMessage(), e.peerId); }
     });
     this.#peerEvents.addEventListener("leave", e => {
       this.#peers.delete(e.peerId);
@@ -163,53 +162,81 @@ export class BeakermentionsEndpoint {
     console.debug("BeakermentionsEndpoint.#setupPeerList: Peer list set up.");
   }
 
-  #setupEndpoint() {
+  #setupMessaging() {
     this.#topic.addEventListener("message", async(e) => {
-      let message = this.#receiveJSONMessage(e);
-      let reply;
+      const message = this.#receiveJSONMessage(e);
       switch(message.type) {
         case "visitor":
-          reply = Messages.endpointIdentityMessage();
-          this.#sendJSONMessage(reply, e.peerId);
-          console.debug("BeakermentionsEndpoint: Visitor message received; sending Endpoint message.");
+          const hashInList = await this.#checkHashAgainstWhitelist(message.hash);
+          if (hashInList) {
+            const reply = Messages.endpointIdentityMessage();
+            this.#sendJSONMessage(reply, e.peerId);
+            console.debug("BeakermentionsEndpoint: Visitor message has whitelisted hash; sending Endpoint message.");
+          }
           break;
-        case "send":
-          reply = await this.#createWebmention(message, this.endpoint);
-          this.#sendJSONMessage(reply, e.peerId);
-          break;
-      }
-    });
-    console.debug("BeakermentionsEndpoint.#setupEndpoint: Endpoint set up.");
-  }
-
-  #setupVisitor() {
-    this.#topic.addEventListener("message", e => {
-      let message = this.#receiveJSONMessage(e);
-      switch(message.type) {
         case "endpoint":
           console.debug("BeakermentionsEndpoint: Endpoint message received.");
           if (this.source && this.target) {
-            if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
-              let reply = Messages.sendMessage(this.source, this.target);
-              this.#sendJSONMessage(reply, e.peerId);
-              console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.")
+            const reply = Messages.sendMessage(this.source, this.target);
+            this.#sendJSONMessage(reply, e.peerId);
+            console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.")
+          }
+          break;
+        case "send":
+          let reply;
+          const url = new URL(message.target);
+          const origin = `hyper://${url.hostname}/`;
+          const info = await beaker.hyperdrive.getInfo(origin);
+          if (info.writable) {
+            if (this.#checkMessageURLsAgainstConfiguration(message.source, message.target)) {
+              reply = await this.#createWebmention(message, this.endpoint);
+              console.debug("BeakermentionsEndpoint: Send message checks out; sending Success message.");
             } else {
-              this.response = Messages.failMessage(this.source, this.target,
-                "One of the URLs are blocked.");
-              this.#topic.close();
+              reply = Messages.failMessage(message.source, message.target, "One of the URLs are blocked.");
+              console.debug("BeakermentionsEndpoint: URLs are blocked; sending Fail message.");
             }
           } else {
-            this.#topic.close();
+            reply = Messages.failMessage(message.source, message.target, "The Target URL's Webmention store is not writable.");
+            console.debug("BeakermentionsEndpoint: Can't write to webmention store; sending Fail message.");
           }
+          this.#sendJSONMessage(reply, e.peerId);
           break;
         case "success":
         case "failure":
           this.response = message;
-          this.#topic.close();
           break;
       }
     });
-    console.debug("BeakermentionsEndpoint.#setupVisitor: Visitor set up.");
+    console.debug("BeakermentionsEndpoint.#setupMessaging: Message listeners set up.");
+  }
+
+  async #getHash(target) {
+    const url = new URL(target);
+    const origin = `hyper://${url.hostname}/`;
+    const output = await this.#sha256sum(origin);
+    return output;
+  }
+
+  async #checkHashAgainstWhitelist(hash) {
+    let output = false;
+    for (let i = 0; i < this.#whitelist.length; i++) {
+      const whitelistHash = await this.#getHash(this.#whitelist[i]);
+      if (whitelistHash === hash) {
+        output = true;
+        break;
+      }
+    }
+    return output;
+  }
+
+  async #sha256sum(message) {
+    // Utilize the Web Cryptography API instead of importing another source
+    // Obtained from https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
+    const msgUint8 = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
   }
 
   #sendJSONMessage(input, peerId) {
@@ -254,9 +281,7 @@ export class BeakermentionsEndpoint {
   
     try {
       // Create and initialize an instance of MentionFilestore
-      let filePath = "/mentions/" + target;
-      filePath = filePath.replace("://", "/");
-      let file = new MentionFilestore(filePath + ".json");
+      let file = new MentionFilestore(`${target}.webmention`);
       await file.init();
   
       // Check to see if the target is valid
