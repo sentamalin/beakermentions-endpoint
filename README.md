@@ -12,6 +12,8 @@ Mentions are not limited to HTML; any file can mention any other file using meta
 
 Do note that this is only an endpoint implementation; an endpoint only saves `source` URLs that mention a particular `target` URL to a `.webmention` file in the `target`'s drive. Any rendering of mentions (including which mentions to render) is done by an application itself after retrieving a `target`'s `sources`.
 
+For more information on Beakermentions, visit [Beakermentions: Webmentions for Beaker Browser][13]
+
 ## How This Works
 
 1. Alice writes a new file and saves it to `hyper://alice/microblog/a-good-day.md`.
@@ -52,3 +54,4 @@ Made with ❤️ and JavaScript. Please freely share and remix.
 [10]: hyper://c34b768fb205adbcd22474177f1b24ba202a44da171b452ec5aef6cd4e744d25/thumb.svg
 [11]: https://openmoji.org/
 [12]: https://creativecommons.org/licenses/by-sa/4.0/#
+[13]: hyper://977da6c3040f711508fe246a22b1a1ddd5b716b16dc9ad2a744383d91d52b63a/
