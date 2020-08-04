@@ -11,6 +11,7 @@
 // with this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 import { BeakermentionsEndpoint } from "./modules/BeakermentionsEndpoint.js";
+import * as WindowMessages from "./modules/WindowMessages.js";
 
 let Endpoint;
 
@@ -34,6 +35,7 @@ async function main() {
   console.debug("index.main: Endpoint is ready.");
 
   let sendMode = params.get("source") && params.get("target");
+  const getMode = params.get("get");
   if (sendMode) {
     Endpoint.source = params.get("source");
     document.getElementById("send-webmention-source").value = Endpoint.source;
@@ -41,6 +43,9 @@ async function main() {
     document.getElementById("send-webmention-target").value = Endpoint.target;
     if (params.get("done")) { Endpoint.done = params.get("done"); }
     Endpoint.sendWebmention();
+  } else if (getMode) {
+    Endpoint.target = getMode;
+    Endpoint.getWebmentions();
   }
 }
 

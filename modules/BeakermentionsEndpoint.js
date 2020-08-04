@@ -107,15 +107,15 @@ export class BeakermentionsEndpoint {
       } catch (error) {
         console.error("BeakermentionsEndpoint.sendWebmention:", error);
       }
-    } else {
-      for (let peer of this.#peers) {
-        const hash = await this.#getHash(this.target);
-        this.#sendJSONMessage(Messages.visitorIdentityMessage(hash), peer);
-      }
-      this.#responseTimeout = setTimeout(() => {
-        this.response = Messages.failMessage(this.source, this.target, "No peers around that can reply to this webmention.");
-      }, 60000);
-    }
+    } else { this.#sendVisitorMessage(); }
+  }
+
+  async getWebmentions() {
+    const url = new URL(this.#target);
+    const origin = `hyper://${url.hostname}/`;
+    const info = await beaker.hyperdrive.getInfo(origin);
+    if (info.writable) {
+    } else { this.#sendVisitorMessage(); }
   }
 
   async saveConfigurationFile() {
@@ -316,5 +316,15 @@ export class BeakermentionsEndpoint {
       console.error("BeakermentionsEndpoint.createWebmention:", error);
       return Messages.failMessage(source, target, error);
     }
+  }
+
+  #sendVisitorMessage() {
+    for (let peer of this.#peers) {
+      const hash = await this.#getHash(this.target);
+      this.#sendJSONMessage(Messages.visitorIdentityMessage(hash), peer);
+    }
+    this.#responseTimeout = setTimeout(() => {
+      this.response = Messages.failMessage(this.source, this.target, "No peers around that has whitelisted target URL's origin.");
+    }, 60000);
   }
 }
