@@ -121,8 +121,8 @@ export class BeakermentionsEndpoint {
     if (info.writable) {
       try {
         if (this.#checkMessageURLsAgainstConfiguration({
-          source = this.source,
-          target = this.target
+          source: this.source,
+          target: this.target
         })) {
           let message = Messages.sendMessage(this.source, this.target);
           let response = await this.#createWebmention(message, this.endpoint);
@@ -135,7 +135,7 @@ export class BeakermentionsEndpoint {
       }
     } else {
       this.#currentRequest = "send";
-      this.#sendVisitorMessage();
+      await this.#sendVisitorMessage();
     }
   }
 
@@ -146,7 +146,7 @@ export class BeakermentionsEndpoint {
     if (info.writable) {
       try {
         if (this.#checkMessageURLsAgainstConfiguration({
-          target = this.target
+          target: this.target
         })) {
           let message = Messages.getMessage(this.target);
           let response = await this.#getWebmentions(message, this.endpoint);
@@ -157,7 +157,7 @@ export class BeakermentionsEndpoint {
       }
     } else {
       this.#currentRequest = "get";
-      this.#sendVisitorMessage();
+      await this.#sendVisitorMessage();
     }
   }
 
@@ -220,11 +220,16 @@ export class BeakermentionsEndpoint {
   #setupMessaging() {
     this.#topic.addEventListener("message", async(e) => {
       const message = this.#receiveJSONMessage(e);
+      let reply;
+      let url;
+      let origin;
+      let info;
+
       switch(message.type) {
         case "visitor":
           const hashInList = await this.#checkHashAgainstWhitelist(message.hash);
           if (hashInList) {
-            const reply = Messages.endpointIdentityMessage();
+            reply = Messages.endpointIdentityMessage();
             this.#sendJSONMessage(reply, e.peerId);
             console.debug("BeakermentionsEndpoint: Visitor message has whitelisted hash; sending Endpoint message.");
           }
@@ -234,14 +239,14 @@ export class BeakermentionsEndpoint {
           switch(this.#currentRequest) {
             case "send":
               if (this.source && this.target) {
-                const reply = Messages.sendMessage(this.source, this.target);
+                reply = Messages.sendMessage(this.source, this.target);
                 this.#sendJSONMessage(reply, e.peerId);
                 console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.");
               }
               break;
             case "get":
               if (this.target) {
-                const reply = Messages.getMessage(this.target);
+                reply = Messages.getMessage(this.target);
                 this.#sendJSONMessage(reply, e.peerId);
                 console.debug("BeakermentionsEndpoint: Target set; sent Get message.");
               }
@@ -249,10 +254,9 @@ export class BeakermentionsEndpoint {
           }
           break;
         case "send":
-          let reply;
-          const url = new URL(message.target);
-          const origin = `hyper://${url.hostname}/`;
-          const info = await beaker.hyperdrive.getInfo(origin);
+          url = new URL(message.target);
+          origin = `hyper://${url.hostname}/`;
+          info = await beaker.hyperdrive.getInfo(origin);
           if (info.writable) {
             if (this.#checkMessageURLsAgainstConfiguration({
               source: message.source,
@@ -271,13 +275,12 @@ export class BeakermentionsEndpoint {
           this.#sendJSONMessage(reply, e.peerId);
           break;
         case "get":
-          let reply;
-          const url = new URL(this.#target);
-          const origin = `hyper://${url.hostname}/`;
-          const info = await beaker.hyperdrive.getInfo(origin);
+          url = new URL(this.#target);
+          origin = `hyper://${url.hostname}/`;
+          info = await beaker.hyperdrive.getInfo(origin);
           if (info.writable) {
             if (this.#checkMessageURLsAgainstConfiguration({
-              target = this.target
+              target: this.target
             })) {
               reply = await this.#getWebmentions(message, this.endpoint);
               console.debug("Get message checks out; sending Webmentions message.");
@@ -416,7 +419,7 @@ export class BeakermentionsEndpoint {
     }
   }
 
-  #sendVisitorMessage() {
+  async #sendVisitorMessage() {
     for (let peer of this.#peers) {
       const hash = await this.#getHash(this.target);
       this.#sendJSONMessage(Messages.visitorIdentityMessage(hash), peer);
@@ -440,7 +443,7 @@ export class BeakermentionsEndpoint {
 
       // Else, grab the webmentions from the target URL's .webmention file
       else {
-        let mentionsFile = await beaker.hyperdrive.readFile(`${this.#url}.webmention`, "utf8");
+        let mentionsFile = await beaker.hyperdrive.readFile(`${target}.webmention`, "utf8");
         mentions = JSON.parse(mentionsFile);
       }
 
