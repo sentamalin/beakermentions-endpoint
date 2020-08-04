@@ -72,7 +72,7 @@ export function webmentionsMessage(target, webmentions, capabilities, status) {
     "type" : "webmentions",
     "target" : target,
     "webmentions" : webmentions,
-    "capabilities" : true,
+    "capabilities" : capabilities,
     "status" : status
   };
   return message;

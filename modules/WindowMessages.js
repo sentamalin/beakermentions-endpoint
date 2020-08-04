@@ -11,15 +11,15 @@
 // with this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
 export function sendReady() {
-  const output = {
+  return {
     type: "ready"
   };
-  return JSON.stringify(output);
 }
 
 export function replyToSend(response) { 
-  return JSON.stringify(response);
+  return response;
 }
 
-export async function replyToGet(response, options = {}) {
+export async function replyToGet(response) {
+  return response;
 }

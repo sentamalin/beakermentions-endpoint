@@ -445,7 +445,7 @@ export class BeakermentionsEndpoint {
         mentions = JSON.parse(mentionsFile);
       }
 
-      return Messages.webmentionsMessage(target, JSON.stringify(mentions), this.useCapabilities, "Webmentions fetched successfully.");
+      return Messages.webmentionsMessage(target, mentions, this.useCapabilities, "Webmentions fetched successfully.");
     } catch (error) {
       console.error("BeakermentionsEndpoint.#getWebmentions:", error);
       return Messages.failMessage("null", target, error);
