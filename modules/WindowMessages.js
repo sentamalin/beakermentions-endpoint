@@ -15,11 +15,3 @@ export function sendReady() {
     type: "ready"
   };
 }
-
-export function replyToSend(response) { 
-  return response;
-}
-
-export async function replyToGet(response) {
-  return response;
-}

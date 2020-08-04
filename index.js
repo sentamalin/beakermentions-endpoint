@@ -14,6 +14,8 @@ import { BeakermentionsEndpoint } from "./modules/BeakermentionsEndpoint.js";
 import * as WindowMessages from "./modules/WindowMessages.js";
 
 let Endpoint;
+let appWindow = null;
+let appOrigin = "*";
 
 async function main() {
   // Initialize the environment
@@ -34,6 +36,33 @@ async function main() {
   await Endpoint.init();
   console.debug("index.main: Endpoint is ready.");
 
+  // If open in an <iframe> or in a child window, send ready message and reply to postMessage() events
+  if ((!window.opener) || (window.parent != window.top)) {
+    if (!window.opener) { appWindow = window.opener; }
+    else { appWindow = window.parent; }
+
+    window.addEventListener("message", event => {
+      const message = JSON.parse(event.data);
+      if (message.type === "origin") { appOrigin = event.origin; }
+      else if (appOrigin === event.origin) {
+        switch (message.type) {
+          case "send":
+            Endpoint.source = message.source;
+            Endpoint.target = message.target;
+            Endpoint.sendWebmention();
+            break;
+          case "get":
+            Endpoint.target = message.target;
+            Endpoint.getWebmentions();
+            break;
+        }
+      }
+    }, false);
+
+    appWindow.postMessage(JSON.stringify(WindowMessages.sendReady()), appOrigin);
+  }
+
+  // If the query strings are there, send or get webmentions
   let sendMode = params.get("source") && params.get("target");
   const getMode = params.get("get");
   if (sendMode) {
@@ -93,8 +122,7 @@ function updatePageResponse(message) {
   response.appendChild(clone);
   if (Endpoint.done) location.href = Endpoint.done;
   console.debug("index.updatePageResponse: Displayed response.");
-
-  // STUB: Send the response to the parent window 
+  sendResponseToParentWindow(message);
 }
 
 // Send messages to the parent application window
@@ -110,9 +138,14 @@ async function sendWebmentionsToParentWindow(message) {
       message.webmentions[i] = newURL.toString();
     }
   }
+  sendResponseToParentWindow(message);
+}
 
-  // STUB: Send the response to the parent window
-  console.debug("Webmentions Message:", message);
+// Send response back to parent window
+function sendResponseToParentWindow(message) {
+  if (appWindow && (appOrigin !== "*")) {
+    appWindow.postMessage(JSON.stringify(message), appOrigin);
+  }
 }
 
 main();
