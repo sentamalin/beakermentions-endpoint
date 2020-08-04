@@ -67,11 +67,12 @@ export function getMessage(target) {
   return message;
 }
 
-export function webmentionsMessage(target, webmentions, status) {
+export function webmentionsMessage(target, webmentions, capabilities, status) {
   let message = {
-    "type" : "webmention",
+    "type" : "webmentions",
     "target" : target,
     "webmentions" : webmentions,
+    "capabilities" : true,
     "status" : status
   };
   return message;

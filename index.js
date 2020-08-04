@@ -86,10 +86,27 @@ function updatePageResponse(message) {
   response.appendChild(clone);
   if (Endpoint.done) location.href = Endpoint.done;
   console.debug("index.updatePageResponse: Displayed response.");
+
+  // STUB: Send the response to the parent window 
 }
 
-// STUB: Send messages to the parent application window
-function sendWebmentionsToParentWindow(message) {
+// Send messages to the parent application window
+async function sendWebmentionsToParentWindow(message) {
+  // If the endpoint responds to use capabilities, change all Hyperdrive links to Capability URLs
+  if (message.capabilities) {
+    let mentionsArray = JSON.parse(message.webmentions);
+    for (let i = 0; i < mentionsArray.length; i++) {
+      const url = new URL(mentionsArray[i]);
+      let origin;
+      if (url.protocol === "hyper:") { origin = await beaker.capabilities.create(`${url.protocol}//${url.hostname}/`); }
+      else { origin = `${url.protocol}//${url.hostname}/`; }
+      const newURL = new URL(url.pathname, origin);
+      mentionsArray[i] = newURL.toString();
+    }
+    message.webmentions = JSON.stringify(mentionsArray);
+  }
+
+  // STUB: Send the response to the parent window
 }
 
 main();

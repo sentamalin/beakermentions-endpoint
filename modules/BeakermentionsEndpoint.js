@@ -195,12 +195,10 @@ export class BeakermentionsEndpoint {
     if (this.#storage.getItem("whitelist")) { this.whitelist = JSON.parse(this.#storage.getItem("whitelist")); }
     if (this.#storage.getItem("isIndexedDB")) {
       if (this.#storage.getItem("isIndexedDB") === "true") { this.isIndexedDB = true; }
-      else { this.isIndexedDB = false; }
-    }
+    } else { this.isIndexedDB = false; }
     if (this.#storage.getItem("useCapabilities")) {
       if (this.#storage.getItem("useCapabilities") === "true") { this.useCapabilities = true; }
-      else { this.useCapabilities = false; }
-    }
+    } else { this.useCapabilities = false; }
   }
 
   #setupPeerList() {
@@ -296,7 +294,7 @@ export class BeakermentionsEndpoint {
           break;
         case "success":
         case "failure":
-        case "webmention":
+        case "webmentions":
           this.response = message;
           break;
       }
@@ -447,19 +445,7 @@ export class BeakermentionsEndpoint {
         mentions = JSON.parse(mentionsFile);
       }
 
-      // If capabilities are being used, make a capabilities URL for each source URL
-      if (this.#useCapabilities) {
-        for (let i = 0; i < mentions.length; i++) {
-          const url = new URL(mentions[i]);
-          const origin = `hyper://${url.hostname}/`;
-          const path = url.pathname.toString();
-          const capability = await beaker.capabilities.create(origin);
-          const capabilityURL = new URL(path, capability);
-          mentions[i] = capabilityURL.toString();
-        }
-      }
-
-      return Messages.webmentionsMessage(target, JSON.stringify(mentions), "Webmentions fetched successfully.");
+      return Messages.webmentionsMessage(target, JSON.stringify(mentions), this.useCapabilities, "Webmentions fetched successfully.");
     } catch (error) {
       console.error("BeakermentionsEndpoint.#getWebmentions:", error);
       return Messages.failMessage("null", target, error);
