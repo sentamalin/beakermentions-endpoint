@@ -101,19 +101,18 @@ function updatePageResponse(message) {
 async function sendWebmentionsToParentWindow(message) {
   // If the endpoint responds to use capabilities, change all Hyperdrive links to Capability URLs
   if (message.capabilities) {
-    let mentionsArray = JSON.parse(message.webmentions);
-    for (let i = 0; i < mentionsArray.length; i++) {
-      const url = new URL(mentionsArray[i]);
+    for (let i = 0; i < message.webmentions.length; i++) {
+      const url = new URL(message.webmentions[i]);
       let origin;
       if (url.protocol === "hyper:") { origin = await beaker.capabilities.create(`${url.protocol}//${url.hostname}/`); }
       else { origin = `${url.protocol}//${url.hostname}/`; }
       const newURL = new URL(url.pathname, origin);
-      mentionsArray[i] = newURL.toString();
+      message.webmentions[i] = newURL.toString();
     }
-    message.webmentions = JSON.stringify(mentionsArray);
   }
 
   // STUB: Send the response to the parent window
+  console.debug("Webmentions Message:", message);
 }
 
 main();
