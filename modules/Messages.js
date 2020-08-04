@@ -57,3 +57,22 @@ export function sendMessage(source, target) {
   };
   return message;
 }
+
+// Create a get message
+export function getMessage(target) {
+  let message = {
+    "type" : "get",
+    "target" : target
+  };
+  return message;
+}
+
+export function webmentionsMessage(target, webmentions, status) {
+  let message = {
+    "type" : "success",
+    "target" : target,
+    "webmentions" : webmentions,
+    "status" : status
+  };
+  return message;
+}

@@ -20,6 +20,7 @@ export class BeakermentionsEndpoint {
   #topic;
   #validator = new WebmentionValidator();
   #storage;
+  #currentRequest;
 
   #blacklist = [""];
   get blacklist() { return this.#blacklist; }
@@ -71,6 +72,10 @@ export class BeakermentionsEndpoint {
   get done() { return this.#done; }
   set done(done) { this.#done = done; }
 
+  #isIndexedDB;
+  get isIndexedDB() {return this.#isIndexedDB; }
+  set isIndexedDB(isIndexedDB) { this.#isIndexedDB = isIndexedDB; }
+
   /********** Constructor/Init **********/
 
   constructor(endpoint, storage) {
@@ -110,7 +115,10 @@ export class BeakermentionsEndpoint {
       } catch (error) {
         console.error("BeakermentionsEndpoint.sendWebmention:", error);
       }
-    } else { this.#sendVisitorMessage(); }
+    } else {
+      this.#currentRequest = "send";
+      this.#sendVisitorMessage();
+    }
   }
 
   async getWebmentions() {
@@ -118,12 +126,28 @@ export class BeakermentionsEndpoint {
     const origin = `hyper://${url.hostname}/`;
     const info = await beaker.hyperdrive.getInfo(origin);
     if (info.writable) {
-    } else { this.#sendVisitorMessage(); }
+      try {
+        if (this.#checkMessageURLsAgainstConfiguration({
+          target = this.target
+        })) {
+          let message = Messages.getMessage(this.target);
+          let response = await this.#getWebmentions(message, this.endpoint);
+          this.response = response;
+        }
+      } catch (error) {
+        console.error("BeakermentionsEndpoint.getWebmentions:", error);
+      }
+    } else {
+      this.#currentRequest = "get";
+      this.#sendVisitorMessage();
+    }
   }
 
   async saveConfigurationFile() {
     this.#storage.setItem("blacklist", JSON.stringify(this.blacklist));
     this.#storage.setItem("whitelist", JSON.stringify(this.whitelist));
+    if (this.#isIndexedDB) { this.#storage.setItem("isIndexedDB", "true"); }
+    else { this.#storage.setItem("isIndexedDB", "false"); }
 
     // Save and delete a temporary file in each whitelisted drive to ask for write permissions.
     for (let i = 1; i < this.#whitelist.length; i++) {
@@ -149,6 +173,10 @@ export class BeakermentionsEndpoint {
   #loadConfigurationFile() {
     if (this.#storage.getItem("blacklist")) { this.blacklist = JSON.parse(this.#storage.getItem("blacklist")); }
     if (this.#storage.getItem("whitelist")) { this.whitelist = JSON.parse(this.#storage.getItem("whitelist")); }
+    if (this.#storage.getItem("isIndexedDB")) {
+      if (this.#storage.getItem("isIndexedDB") === "true") { this.#isIndexedDB = true; }
+      else { this.#isIndexedDB = false; }
+    }
   }
 
   #setupPeerList() {
@@ -179,10 +207,21 @@ export class BeakermentionsEndpoint {
           break;
         case "endpoint":
           console.debug("BeakermentionsEndpoint: Endpoint message received.");
-          if (this.source && this.target) {
-            const reply = Messages.sendMessage(this.source, this.target);
-            this.#sendJSONMessage(reply, e.peerId);
-            console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.")
+          switch(this.#currentRequest) {
+            case "send":
+              if (this.source && this.target) {
+                const reply = Messages.sendMessage(this.source, this.target);
+                this.#sendJSONMessage(reply, e.peerId);
+                console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.");
+              }
+              break;
+            case "get":
+              if (this.target) {
+                const reply = Messages.getMessage(this.target);
+                this.#sendJSONMessage(reply, e.peerId);
+                console.debug("BeakermentionsEndpoint: Target set; sent Get message.");
+              }
+              break;
           }
           break;
         case "send":
@@ -192,7 +231,7 @@ export class BeakermentionsEndpoint {
           const info = await beaker.hyperdrive.getInfo(origin);
           if (info.writable) {
             if (this.#checkMessageURLsAgainstConfiguration({
-              source = message.source,
+              source: message.source,
               target: message.target
             })) {
               reply = await this.#createWebmention(message, this.endpoint);
@@ -203,6 +242,27 @@ export class BeakermentionsEndpoint {
             }
           } else {
             reply = Messages.failMessage(message.source, message.target, "The Target URL's Webmention store is not writable.");
+            console.debug("BeakermentionsEndpoint: Can't write to webmention store; sending Fail message.");
+          }
+          this.#sendJSONMessage(reply, e.peerId);
+          break;
+        case "get":
+          let reply;
+          const url = new URL(this.#target);
+          const origin = `hyper://${url.hostname}/`;
+          const info = await beaker.hyperdrive.getInfo(origin);
+          if (info.writable) {
+            if (this.#checkMessageURLsAgainstConfiguration({
+              target = this.target
+            })) {
+              reply = await this.#getWebmentions(message, this.endpoint);
+              console.debug("Get message checks out; sending Webmentions message.");
+            } else {
+              reply = Messages.failMessage("null", message.target, "The Target URL is not in the whitelist.");
+              console.debug("Beakermentions Endpoint: Target URL is not in the whitelist; sending Fail message.");
+            }
+          } else {
+            reply = Messages.failMessage("null", message.target, "The Target URL's Webmention store is not available.");
             console.debug("BeakermentionsEndpoint: Can't write to webmention store; sending Fail message.");
           }
           this.#sendJSONMessage(reply, e.peerId);
@@ -339,5 +399,27 @@ export class BeakermentionsEndpoint {
     this.#responseTimeout = setTimeout(() => {
       this.response = Messages.failMessage(this.source, this.target, "No peers around that has whitelisted target URL's origin.");
     }, 60000);
+  }
+
+  async #getWebmentions(input, endpoint) {
+    const target = input.target;
+    try {
+      // Check to see if the target is valid
+      let targetValid = await this.#checkTarget(target, endpoint);
+      if (!targetValid) { throw "Target URL is not valid. Make sure that the URL exists and properly references this webmention endpoint."; }
+
+      // STUB: If the endpoint stores webmentions using IndexedDB, grab the webmentions from the database
+      if (this.#isIndexedDB) {
+      }
+
+      // Else, grab the webmentions from the target URL's .webmention file
+      else {
+        let mentionsFile = await beaker.hyperdrive.readFile(`${this.#url}.webmention`, "utf8");
+        return Messages.webmentionsMessage(target, mentionsFile, "Webmentions fetched successfully.");
+      }
+    } catch (error) {
+      console.error("BeakermentionsEndpoint.#getWebmentions:", error);
+      return Messages.failMessage("null", target, error);
+    }
   }
 }
