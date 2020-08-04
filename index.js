@@ -64,8 +64,15 @@ function saveConfiguration() {
 
 // Do something different if the response is from sending or getting webmentions
 function newResponse(message) {
-  if ((message.type === "success") || (message.type === "failure")) { updatePageResponse(message); }
-  else { sendWebmentionsToParentWindow(message); }
+  switch (message.type) {
+    case "webmentions":
+      sendWebmentionsToParentWindow(message);
+      break;
+    case "success":
+    case "failure":
+      updatePageResponse(message);
+      break;
+  }
 }
 
 // Update the response on the HTML
