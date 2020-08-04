@@ -97,7 +97,10 @@ export class BeakermentionsEndpoint {
     const info = await beaker.hyperdrive.getInfo(origin);
     if (info.writable) {
       try {
-        if (this.#checkMessageURLsAgainstConfiguration(this.source, this.target)) {
+        if (this.#checkMessageURLsAgainstConfiguration({
+          source = this.source,
+          target = this.target
+        })) {
           let message = Messages.sendMessage(this.source, this.target);
           let response = await this.#createWebmention(message, this.endpoint);
           this.response = response;
@@ -188,7 +191,10 @@ export class BeakermentionsEndpoint {
           const origin = `hyper://${url.hostname}/`;
           const info = await beaker.hyperdrive.getInfo(origin);
           if (info.writable) {
-            if (this.#checkMessageURLsAgainstConfiguration(message.source, message.target)) {
+            if (this.#checkMessageURLsAgainstConfiguration({
+              source = message.source,
+              target: message.target
+            })) {
               reply = await this.#createWebmention(message, this.endpoint);
               console.debug("BeakermentionsEndpoint: Send message checks out; sending Success message.");
             } else {
@@ -251,28 +257,35 @@ export class BeakermentionsEndpoint {
     return parsedJSON;
   }
 
-  #checkMessageURLsAgainstConfiguration(source, target) {
+  #checkMessageURLsAgainstConfiguration(options) {
     let passesBlacklist = true;
     let passesWhitelist = false;
+    let source = null;
+    let target = null;
+    if (options.source) { source = options.source; }
+    if (options.target) { target = options.target; }
 
-    if (!((this.blacklist.length === 1) && (this.blacklist[0] === "")))
-      this.blacklist.forEach(url => {
-        let pattern = new RegExp(url);
-        if (pattern.test(source)) {
-          passesBlacklist = false;
-        }
-      });
-    if (!((this.whitelist.length === 1) && (this.whitelist[0] === "")))
+    if (source) {
+      if (!((this.blacklist.length === 1) && (this.blacklist[0] === ""))) {
+        this.blacklist.forEach(url => {
+          let pattern = new RegExp(url);
+          if (pattern.test(source)) {
+            passesBlacklist = false;
+          }
+        });
+      }
+    }
+    if (!((this.whitelist.length === 1) && (this.whitelist[0] === ""))) {
       this.whitelist.forEach(url => {
         let pattern = new RegExp(url);
         if (pattern.test(target)) {
           passesWhitelist = true;
         }
       });
-    else passesWhitelist = true;
+    } else { passesWhitelist = true; }
   
-    if (passesBlacklist && passesWhitelist) return true;
-    else return false;
+    if (passesBlacklist && passesWhitelist) { return true; }
+    else { return false; }
   }
 
   async #createWebmention(input, endpoint) {
