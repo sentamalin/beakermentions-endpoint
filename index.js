@@ -24,7 +24,7 @@ async function main() {
   loadREADME();
 
   // Initialize the endpoint and its event handlers
-  Endpoint.onResponseSet(response => { updatePageResponse(response); });
+  Endpoint.onResponseSet(response => { newResponse(response); });
   console.debug("index.main: Added Endpoint.onResponseSet event handler.");
   Endpoint.onBlacklistLoaded(blacklist => { document.getElementById("blacklist").value = blacklist.join("\n"); });
   console.debug("index.main: Added Endpoint.onBlacklistLoaded event handler.");
@@ -62,6 +62,12 @@ function saveConfiguration() {
   Endpoint.saveConfigurationFile();
 }
 
+// Do something different if the response is from sending or getting webmentions
+function newResponse(message) {
+  if ((message.type === "success") || (message.type === "failure")) { updatePageResponse(message); }
+  else { sendWebmentionsToParentWindow(message); }
+}
+
 // Update the response on the HTML
 function updatePageResponse(message) {
   let response = document.querySelector(".response-container");
@@ -80,6 +86,10 @@ function updatePageResponse(message) {
   response.appendChild(clone);
   if (Endpoint.done) location.href = Endpoint.done;
   console.debug("index.updatePageResponse: Displayed response.");
+}
+
+// STUB: Send messages to the parent application window
+function sendWebmentionsToParentWindow(message) {
 }
 
 main();

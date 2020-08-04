@@ -69,7 +69,7 @@ export function getMessage(target) {
 
 export function webmentionsMessage(target, webmentions, status) {
   let message = {
-    "type" : "success",
+    "type" : "webmention",
     "target" : target,
     "webmentions" : webmentions,
     "status" : status

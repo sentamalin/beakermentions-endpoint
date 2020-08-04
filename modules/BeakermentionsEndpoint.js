@@ -73,8 +73,26 @@ export class BeakermentionsEndpoint {
   set done(done) { this.#done = done; }
 
   #isIndexedDB;
-  get isIndexedDB() {return this.#isIndexedDB; }
-  set isIndexedDB(isIndexedDB) { this.#isIndexedDB = isIndexedDB; }
+  get isIndexedDB() { return this.#isIndexedDB; }
+  set isIndexedDB(isIndexedDB) {
+    this.#isIndexedDB = isIndexedDB;
+    this.isIndexedDBLoaded(isIndexedDB);
+  }
+  isIndexedDBLoaded(isIndexedDB) {}
+  onIsIndexedDBLoaded(eventHandler) {
+    this.isIndexedDBLoaded = eventHandler;
+  }
+
+  #useCapabilities;
+  get useCapabilities() { return this.#useCapabilities; }
+  set useCapabilities(useCapabilities) {
+    this.#useCapabilities = useCapabilities;
+    this.useCapabilitiesLoaded(useCapabilities);
+  }
+  useCapabilitiesLoaded(useCapabilities) {}
+  onUseCapabilitiesLoaded(eventHandler) {
+    this.useCapabilitiesLoaded = eventHandler;
+  }
 
   /********** Constructor/Init **********/
 
@@ -148,6 +166,8 @@ export class BeakermentionsEndpoint {
     this.#storage.setItem("whitelist", JSON.stringify(this.whitelist));
     if (this.#isIndexedDB) { this.#storage.setItem("isIndexedDB", "true"); }
     else { this.#storage.setItem("isIndexedDB", "false"); }
+    if (this.#useCapabilities) { this.#storage.setItem("useCapabilities", "true"); }
+    else { this.#storage.setItem("useCapabilities", "false"); }
 
     // Save and delete a temporary file in each whitelisted drive to ask for write permissions.
     for (let i = 1; i < this.#whitelist.length; i++) {
@@ -174,8 +194,12 @@ export class BeakermentionsEndpoint {
     if (this.#storage.getItem("blacklist")) { this.blacklist = JSON.parse(this.#storage.getItem("blacklist")); }
     if (this.#storage.getItem("whitelist")) { this.whitelist = JSON.parse(this.#storage.getItem("whitelist")); }
     if (this.#storage.getItem("isIndexedDB")) {
-      if (this.#storage.getItem("isIndexedDB") === "true") { this.#isIndexedDB = true; }
-      else { this.#isIndexedDB = false; }
+      if (this.#storage.getItem("isIndexedDB") === "true") { this.isIndexedDB = true; }
+      else { this.isIndexedDB = false; }
+    }
+    if (this.#storage.getItem("useCapabilities")) {
+      if (this.#storage.getItem("useCapabilities") === "true") { this.useCapabilities = true; }
+      else { this.useCapabilities = false; }
     }
   }
 
@@ -269,6 +293,7 @@ export class BeakermentionsEndpoint {
           break;
         case "success":
         case "failure":
+        case "webmention":
           this.response = message;
           break;
       }
@@ -403,6 +428,7 @@ export class BeakermentionsEndpoint {
 
   async #getWebmentions(input, endpoint) {
     const target = input.target;
+    let mentions = [];
     try {
       // Check to see if the target is valid
       let targetValid = await this.#checkTarget(target, endpoint);
@@ -415,8 +441,22 @@ export class BeakermentionsEndpoint {
       // Else, grab the webmentions from the target URL's .webmention file
       else {
         let mentionsFile = await beaker.hyperdrive.readFile(`${this.#url}.webmention`, "utf8");
-        return Messages.webmentionsMessage(target, mentionsFile, "Webmentions fetched successfully.");
+        mentions = JSON.parse(mentionsFile);
       }
+
+      // If capabilities are being used, make a capabilities URL for each source URL
+      if (this.#useCapabilities) {
+        for (let i = 0; i < mentions.length; i++) {
+          const url = new URL(mentions[i]);
+          const origin = `hyper://${url.hostname}/`;
+          const path = url.pathname.toString();
+          const capability = await beaker.capabilities.create(origin);
+          const capabilityURL = new URL(path, capability);
+          mentions[i] = capabilityURL.toString();
+        }
+      }
+
+      return Messages.webmentionsMessage(target, JSON.stringify(mentions), "Webmentions fetched successfully.");
     } catch (error) {
       console.error("BeakermentionsEndpoint.#getWebmentions:", error);
       return Messages.failMessage("null", target, error);
