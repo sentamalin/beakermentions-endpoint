@@ -321,12 +321,12 @@ export class BeakermentionsEndpoint {
               break;
             }
           }
-          url = new URL(this.#target);
+          url = new URL(message.target);
           origin = `hyper://${url.hostname}/`;
           info = await beaker.hyperdrive.getInfo(origin);
           if (info.writable) {
             if (this.#checkMessageURLsAgainstConfiguration({
-              target: this.target
+              target: message.target
             })) {
               reply = await this.#getWebmentions(message, this.endpoint);
               console.debug("Get message checks out; sending Webmentions message.");
