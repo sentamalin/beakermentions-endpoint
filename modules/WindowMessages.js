@@ -10,8 +10,15 @@
 // You should have received a copy of the CC0 Public Domain Dedication along
 // with this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-export function sendReady() {
+export function sendHandshake() {
   return {
-    type: "ready"
+    type: "handshake"
   };
+}
+
+export function sendReady(origin) {
+  return {
+    type: "ready",
+    origin: origin
+  }
 }

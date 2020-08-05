@@ -43,7 +43,10 @@ async function main() {
 
     window.addEventListener("message", event => {
       const message = JSON.parse(event.data);
-      if (message.type === "origin") { appOrigin = event.origin; }
+      if (message.type === "origin") {
+        appOrigin = event.origin;
+        appWindow.postMessage(JSON.stringify(WindowMessages.sendReady(appOrigin)), appOrigin);
+      }
       else if (appOrigin === event.origin) {
         switch (message.type) {
           case "send":
@@ -61,7 +64,7 @@ async function main() {
       }
     }, false);
 
-    appWindow.postMessage(JSON.stringify(WindowMessages.sendReady()), appOrigin);
+    appWindow.postMessage(JSON.stringify(WindowMessages.sendHandshake()), appOrigin);
   }
 
   // If the query strings are there, send or get webmentions
