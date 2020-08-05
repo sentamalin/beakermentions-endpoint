@@ -32,6 +32,8 @@ async function main() {
   console.debug("index.main: Added Endpoint.onBlacklistLoaded event handler.");
   Endpoint.onWhitelistLoaded(whitelist => { document.getElementById("whitelist").value = whitelist.join("\n"); });
   console.debug("index.main: Added Endpoint.onWhitelistLoaded event handler.");
+  Endpoint.onApplistLoaded(applist => { document.getElementById("applist").value = applist.join("\n"); });
+  console.debug("index.main: Added Endpoint.onApplistLoaded event handler.");
   document.getElementById("save-configuration").addEventListener("click", saveConfiguration);
   await Endpoint.init();
   console.debug("index.main: Endpoint is ready.");
@@ -93,6 +95,7 @@ async function loadREADME() {
 function saveConfiguration() {
   Endpoint.blacklist = document.getElementById("blacklist").value.split("\n");
   Endpoint.whitelist = document.getElementById("whitelist").value.split("\n");
+  Endpoint.applist = document.getElementById("applist").value.split("\n");
   Endpoint.saveConfigurationFile();
 }
 

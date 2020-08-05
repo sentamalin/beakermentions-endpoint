@@ -22,7 +22,7 @@ export class BeakermentionsEndpoint {
   #storage;
   #currentRequest;
 
-  #blacklist = [""];
+  #blacklist;
   get blacklist() { return this.#blacklist; }
   set blacklist(blacklist) {
     this.#blacklist = blacklist;
@@ -33,7 +33,7 @@ export class BeakermentionsEndpoint {
     this.blacklistLoaded = eventHandler;
   }
 
-  #whitelist = [""];
+  #whitelist;
   get whitelist() { return this.#whitelist; }
   set whitelist(whitelist) {
     this.#whitelist = whitelist;
@@ -44,10 +44,7 @@ export class BeakermentionsEndpoint {
     this.whitelistLoaded = eventHandler;
   }
 
-  #applist = [
-    "hyper://562c83f6d5ddfeb1778952d08606325ac63dfacd651d493a6b32f8d8a710ddb8/", // Beakermentions
-    "hyper://be127cc55e7e872f6be870ab0fa631be431f3917aa4dc7d5d23ea46287d986fc/" // Beakermentions [Dev]
-  ];
+  #applist;
   get applist() { return this.#applist; }
   set applist(applist) {
     this.#applist = applist;
@@ -221,8 +218,13 @@ export class BeakermentionsEndpoint {
 
   #loadConfigurationFile() {
     if (this.#storage.getItem("blacklist")) { this.blacklist = JSON.parse(this.#storage.getItem("blacklist")); }
+    else { this.blacklist = [""]; }
     if (this.#storage.getItem("whitelist")) { this.whitelist = JSON.parse(this.#storage.getItem("whitelist")); }
+    else { this.whitelist = [""]; }
     if (this.#storage.getItem("applist")) { this.applist = JSON.parse(this.#storage.getItem("applist")); }
+    else { this.applist = [
+      "hyper://562c83f6d5ddfeb1778952d08606325ac63dfacd651d493a6b32f8d8a710ddb8/" // Beakermentions
+    ]; }
     if (this.#storage.getItem("isIndexedDB")) {
       if (this.#storage.getItem("isIndexedDB") === "true") { this.isIndexedDB = true; }
     } else { this.isIndexedDB = false; }
