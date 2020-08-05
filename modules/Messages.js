@@ -49,21 +49,23 @@ export function successMessage(source, target, status) {
 }
 
 // Create a send message
-export function sendMessage(source, target) {
+export function sendMessage(source, target, origin = null) {
   let message = {
     "type" : "send",
     "source" : source,
     "target" : target
   };
+  if (origin) { message.origin = origin; }
   return message;
 }
 
 // Create a get message
-export function getMessage(target) {
+export function getMessage(target, origin = null) {
   let message = {
     "type" : "get",
     "target" : target
   };
+  if (origin) { message.origin = origin; }
   return message;
 }
 

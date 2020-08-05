@@ -37,8 +37,8 @@ async function main() {
   console.debug("index.main: Endpoint is ready.");
 
   // If open in an <iframe> or in a child window, send ready message and reply to postMessage() events
-  if ((!window.opener) || (window.parent != window.top)) {
-    if (!window.opener) { appWindow = window.opener; }
+  if ((window.opener) || (window.parent != window.top)) {
+    if (window.opener) { appWindow = window.opener; }
     else { appWindow = window.parent; }
 
     window.addEventListener("message", event => {
@@ -49,10 +49,12 @@ async function main() {
           case "send":
             Endpoint.source = message.source;
             Endpoint.target = message.target;
+            Endpoint.origin = appOrigin;
             Endpoint.sendWebmention();
             break;
           case "get":
             Endpoint.target = message.target;
+            Endpoint.origin = appOrigin;
             Endpoint.getWebmentions();
             break;
         }

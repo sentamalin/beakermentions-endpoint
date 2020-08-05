@@ -86,6 +86,10 @@ export class BeakermentionsEndpoint {
   get done() { return this.#done; }
   set done(done) { this.#done = done; }
 
+  #origin;
+  get origin() { return this.#origin; }
+  set origin(origin) { this.#origin = origin; }
+
   #isIndexedDB;
   get isIndexedDB() { return this.#isIndexedDB; }
   set isIndexedDB(isIndexedDB) {
@@ -138,7 +142,12 @@ export class BeakermentionsEndpoint {
           source: this.source,
           target: this.target
         })) {
-          let message = Messages.sendMessage(this.source, this.target);
+          let message;
+          if (this.origin) {
+            if (this.#checkApplist(this.origin)) { message = Messages.sendMessage(this.source, this.target); }
+            else { throw "Application is not in the application whitelist."; }
+          }
+          else { message = Messages.sendMessage(this.source, this.target); }
           let response = await this.#createWebmention(message, this.endpoint);
           this.response = response;
         } else {
@@ -162,7 +171,12 @@ export class BeakermentionsEndpoint {
         if (this.#checkMessageURLsAgainstConfiguration({
           target: this.target
         })) {
-          let message = Messages.getMessage(this.target);
+          let message;
+          if (this.origin) {
+            if (this.#checkApplist(this.origin)) { message = Messages.getMessage(this.target); }
+            else { throw "Application is not in the application whitelist."; }
+          }
+          else { message = Messages.getMessage(this.target); }
           let response = await this.#getWebmentions(message, this.endpoint);
           this.response = response;
         }
@@ -253,14 +267,16 @@ export class BeakermentionsEndpoint {
           switch(this.#currentRequest) {
             case "send":
               if (this.source && this.target) {
-                reply = Messages.sendMessage(this.source, this.target);
+                if (this.origin) { reply = Messages.sendMessage(this.source, this.target, this.origin); }
+                else { reply = Messages.sendMessage(this.source, this.target); }
                 this.#sendJSONMessage(reply, e.peerId);
                 console.debug("BeakermentionsEndpoint: Source and Target set; sent Send message.");
               }
               break;
             case "get":
               if (this.target) {
-                reply = Messages.getMessage(this.target);
+                if (this.origin) { reply = Messages.getMessage(this.target, this.origin); }
+                else { reply = Messages.getMessage(this.target); }
                 this.#sendJSONMessage(reply, e.peerId);
                 console.debug("BeakermentionsEndpoint: Target set; sent Get message.");
               }
@@ -268,6 +284,14 @@ export class BeakermentionsEndpoint {
           }
           break;
         case "send":
+          if (message.origin) {
+            if (!this.#checkApplist(message.origin)) {
+              reply = Messages.failMessage(message.source, message.target, "Application is not in application whitelist.");
+              console.debug("BeakermentionsEndpoint: Application is not in application whitelist; sending Fail message.");
+              this.#sendJSONMessage(reply, e.peerId);
+              break;
+            }
+          }
           url = new URL(message.target);
           origin = `hyper://${url.hostname}/`;
           info = await beaker.hyperdrive.getInfo(origin);
@@ -289,6 +313,14 @@ export class BeakermentionsEndpoint {
           this.#sendJSONMessage(reply, e.peerId);
           break;
         case "get":
+          if (message.origin) {
+            if (!this.#checkApplist(message.origin)) {
+              reply = Messages.failMessage("null", message.target, "Application is not in application whitelist.");
+              console.debug("BeakermentionsEndpoint: Application is not in application whitelist; sending Fail message.");
+              this.#sendJSONMessage(reply, e.peerId);
+              break;
+            }
+          }
           url = new URL(this.#target);
           origin = `hyper://${url.hostname}/`;
           info = await beaker.hyperdrive.getInfo(origin);
@@ -466,5 +498,17 @@ export class BeakermentionsEndpoint {
       console.error("BeakermentionsEndpoint.#getWebmentions:", error);
       return Messages.failMessage("null", target, error);
     }
+  }
+
+  #checkApplist(origin) {
+    let output = false;
+    for (let i = 0; i < this.applist.length; i++) {
+      const url = new URL(this.applist[i]);
+      if (origin === url.origin) {
+        output = true;
+        break;
+      }
+    }
+    return output;
   }
 }
