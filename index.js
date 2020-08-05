@@ -37,7 +37,7 @@ async function main() {
   console.debug("index.main: Endpoint is ready.");
 
   // If open in an <iframe> or in a child window, send ready message and reply to postMessage() events
-  if ((window.opener) || (window.parent != window.top)) {
+  if ((window.opener) || (window.self !== window.top)) {
     if (window.opener) { appWindow = window.opener; }
     else { appWindow = window.parent; }
 
