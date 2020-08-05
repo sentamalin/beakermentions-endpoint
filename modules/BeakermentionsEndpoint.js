@@ -44,6 +44,20 @@ export class BeakermentionsEndpoint {
     this.whitelistLoaded = eventHandler;
   }
 
+  #applist = [
+    "hyper://562c83f6d5ddfeb1778952d08606325ac63dfacd651d493a6b32f8d8a710ddb8/", // Beakermentions
+    "hyper://be127cc55e7e872f6be870ab0fa631be431f3917aa4dc7d5d23ea46287d986fc/" // Beakermentions [Dev]
+  ];
+  get applist() { return this.#applist; }
+  set applist(applist) {
+    this.#applist = applist;
+    this.applistLoaded(applist);
+  }
+  applistLoaded(applist) {}
+  onApplistLoaded(eventHandler) {
+    this.applistLoaded = eventHandler;
+  }
+
   #response;
   get response() { return this.#response; }
   set response(response) {
@@ -164,6 +178,7 @@ export class BeakermentionsEndpoint {
   async saveConfigurationFile() {
     this.#storage.setItem("blacklist", JSON.stringify(this.blacklist));
     this.#storage.setItem("whitelist", JSON.stringify(this.whitelist));
+    this.#storage.setItem("applist", JSON.stringify(this.applist));
     if (this.#isIndexedDB) { this.#storage.setItem("isIndexedDB", "true"); }
     else { this.#storage.setItem("isIndexedDB", "false"); }
     if (this.#useCapabilities) { this.#storage.setItem("useCapabilities", "true"); }
@@ -193,6 +208,7 @@ export class BeakermentionsEndpoint {
   #loadConfigurationFile() {
     if (this.#storage.getItem("blacklist")) { this.blacklist = JSON.parse(this.#storage.getItem("blacklist")); }
     if (this.#storage.getItem("whitelist")) { this.whitelist = JSON.parse(this.#storage.getItem("whitelist")); }
+    if (this.#storage.getItem("applist")) { this.applist = JSON.parse(this.#storage.getItem("applist")); }
     if (this.#storage.getItem("isIndexedDB")) {
       if (this.#storage.getItem("isIndexedDB") === "true") { this.isIndexedDB = true; }
     } else { this.isIndexedDB = false; }
