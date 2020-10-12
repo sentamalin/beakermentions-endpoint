@@ -117,10 +117,8 @@ function updatePageResponse(message) {
   let response = document.querySelector(".response-container");
   let template = document.querySelector(".response");
   let clone = template.content.cloneNode(true);
-  if (message.type === "success")
-    clone.querySelector(".response-type").classList.add("responsePass");
-  else
-    clone.querySelector(".response-type").classList.add("responseFail");
+  if (message.type === "success") { clone.querySelector(".response-type").classList.add("responsePass"); }
+  else { clone.querySelector(".response-type").classList.add("responseFail"); }
   clone.querySelector(".response-type").textContent = message.type;
   clone.querySelector(".response-source").textContent = message.source;
   clone.querySelector(".response-source").setAttribute("href", message.source);
@@ -128,7 +126,11 @@ function updatePageResponse(message) {
   clone.querySelector(".response-target").setAttribute("href", message.target);
   clone.querySelector(".response-status").textContent = message.status;
   response.appendChild(clone);
-  if (Endpoint.done) location.href = Endpoint.done;
+  if (Endpoint.done) {
+    let redirect = new URL(Endpoint.done);
+    redirect.search = `?result=${message.type}&source=${message.source}`;
+    location.href = redirect;
+  }
   console.debug("index.updatePageResponse: Displayed response.");
   sendResponseToParentWindow(message);
 }
