@@ -14,6 +14,10 @@ Do note that this is only an endpoint implementation; an endpoint only saves `so
 
 For more information on Beakermentions, visit [Beakermentions: Webmentions for Beaker Browser][13]
 
+## This Project Is Archived
+
+It was cool at the time to be able to essentially send and receive webmentions, but as I've started working more and more at my primary job post-pandemic, I've been coding less and less on this. As Beaker Browser is archived as of 27 December 2022, consequently I'm archiving Beakermentions, Beakermentions Endpoint, and Beakermentions Validator.
+
 ## How This Works
 
 1. Alice writes a new file and saves it to `hyper://alice/microblog/a-good-day.md`.
